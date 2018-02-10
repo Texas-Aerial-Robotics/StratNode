@@ -23,7 +23,6 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
   ros::Subscriber sub = n.subscribe("roombaPose", 1, chatterCallback);
-
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1000);
 
   ros::Rate loop_rate(10);
@@ -31,14 +30,11 @@ int main(int argc, char **argv)
   int count = 0;
   while (ros::ok())
   {
-    chatter_pub.publish(msg);
-
+    chatter_pub.publish(waypoint);
     ros::spinOnce();
-
     loop_rate.sleep();
     ++count;
   }
-
   return 0;
 }
 

@@ -197,3 +197,7 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+add_executable(stratnode src/stratnode.cpp)
+target_link_libraries(stratnode ${catkin_LIBRARIES})
+
+
