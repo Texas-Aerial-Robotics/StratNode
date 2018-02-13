@@ -12,17 +12,23 @@ void modelStatesCb(const gazebo_msgs::ModelStates::ConstPtr& msg)
 {
     gazebo_msgs::ModelStates newState = (gazebo_msgs::ModelStates)(*msg);
 
-    ROS_INFO("New Model State: %s\nPosition: %f, %f, %f\nTwist: %f, %f, %f; %f, %f, %f\n\n",
-     newState.name[0].c_str(),
-     newState.pose[0].position.x,
-     newState.pose[0].position.y,
-     newState.pose[0].position.z,
-     newState.twist[0].linear.x,
-     newState.twist[0].linear.y,
-     newState.twist[0].linear.z,
-     newState.twist[0].angular.x,
-     newState.twist[0].angular.y,
-     newState.twist[0].angular.z);
+    int count =  newState.name.size();
+
+    for(int i=1; i<count; i++){
+        ROS_INFO("New Model State: %s\nPosition: %f, %f, %f\nTwist: %f, %f, %f; %f, %f, %f\n\n",
+             newState.name[i].c_str(),
+             newState.pose[i].position.x,
+             newState.pose[i].position.y,
+             newState.pose[i].position.z,
+             newState.twist[i].linear.x,
+             newState.twist[i].linear.y,
+             newState.twist[i].linear.z,
+             newState.twist[i].angular.x,
+             newState.twist[i].angular.y,
+             newState.twist[i].angular.z);
+
+    }
+
 }
 
 int main(int argc, char **argv)
