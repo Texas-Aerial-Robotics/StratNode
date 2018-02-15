@@ -10,8 +10,7 @@ geometry_msgs::PoseStamped waypoint;
 
 void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
- waypoint.pose.position.x=msg.pose.position.x;
- waypoint.pose.position.y=msg.pose.position.y;
+ waypoint=*msg;
  waypoint.pose.position.z=1.5;
  
 }
