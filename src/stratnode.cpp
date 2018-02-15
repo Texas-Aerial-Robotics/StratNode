@@ -30,6 +30,7 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     chatter_pub.publish(waypoint);
+    cout<<waypoint<<endl;
     ros::spinOnce();
     loop_rate.sleep();
     ++count;
