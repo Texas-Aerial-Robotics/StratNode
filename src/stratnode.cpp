@@ -41,8 +41,6 @@ void modelStatesCb(const gazebo_msgs::ModelStates::ConstPtr& msg)
     //          curModelStates.twist[i].angular.z);
     // }
 
-
-
 }
 
 int main(int argc, char **argv)
@@ -57,30 +55,9 @@ int main(int argc, char **argv)
     ros::Subscriber state_sub = nhStrat.subscribe<gazebo_msgs::ModelStates>("gazebo/model_states", 10, modelStatesCb);
 
 
-    ros::Duration(5.0).sleep();
+    // ros::Duration(5.0).sleep();
 
-    ros::spinOnce();
-
-    int count =  curModelStates.name.size();
-    ROS_INFO("Current model states: %d\n", count);
-
-    for(int i=0; i<count; i++){
-
-        std::string name = curModelStates.name[i].c_str();
-        std::string ptopic = rootNode + "/" + curModelStates.name[i].c_str() + "/pose";
-        std::string ttopic = rootNode + "/" + curModelStates.name[i].c_str() + "/twist";
-        ros::Publisher state_pose_pub = nhStrat.advertise<geometry_msgs::Pose>(ptopic, 10, true);
-        ros::Publisher state_twist_pub = nhStrat.advertise<geometry_msgs::Twist>(ttopic, 10, true);
-        objPubs.push_back(state_pose_pub);
-        objPubs.push_back(state_twist_pub);
-        objectNames.push_back(name);
-        objectNames.push_back(name);
-        ROS_INFO ("Adding Publisher %s", name);
-
-    }
-
-    ROS_INFO ("Added %d publishers", objPubs.size());
- 
+    // ros::spinOnce(); 
 
     ros::Rate loop_rate(10.0);
 
@@ -89,9 +66,38 @@ int main(int argc, char **argv)
 
         ros::spinOnce();
 
-        count =  curModelStates.name.size();
-        ROS_INFO("Current model states: %d\n", count);
-        for(int i=0; i<count; i++){
+        int modelCount = curModelStates.name.size();
+        int pubCount = objPubs.size();
+
+
+        ROS_INFO("Current model states: %d\n", modelCount);
+        for(int i=0; i<modelCount; i++){
+
+            char* name = curModelStates.name[i].c_str();
+            geometry_msgs::Pose tempPose = curModelStates.pose[i];
+            geometry_msgs::Twist tempTwist = curModelStates.twist[i];
+
+            int pubIndex = -1;
+            for(int j=0; j<pubCount/2; j++){
+                if(objectNames[i] == name){
+                    pubIndex = j*2;
+                }
+            }
+
+            if(pubIndex == -1){
+                std::string ptopic = rootNode + "/" + curModelStates.name[i].c_str() + "/pose";
+                std::string ttopic = rootNode + "/" + curModelStates.name[i].c_str() + "/twist";
+                ros::Publisher state_pose_pub = nhStrat.advertise<geometry_msgs::Pose>(ptopic, 10, true);
+                ros::Publisher state_twist_pub = nhStrat.advertise<geometry_msgs::Twist>(ttopic, 10, true);
+                objPubs.push_back(state_pose_pub);
+                objPubs.push_back(state_twist_pub);
+                objectNames.push_back(name);
+                pubIndex = objPubs.size() - 1;
+                pubCount += 2;
+                ROS_INFO ("Adding Publisher %s", name);
+            }
+
+
             ROS_INFO("New Model State: %s\nPosition: %f, %f, %f\nTwist: %f, %f, %f; %f, %f, %f\n\n",
                  curModelStates.name[i].c_str(),
                  curModelStates.pose[i].position.x,
@@ -104,17 +110,15 @@ int main(int argc, char **argv)
                  curModelStates.twist[i].angular.y,
                  curModelStates.twist[i].angular.z);
 
-            geometry_msgs::Pose tempPose = curModelStates.pose[i];
-            geometry_msgs::Twist tempTwist = curModelStates.twist[i];
-            ros::Publisher state_pose_pub = objPubs[i*2];
-            ros::Publisher state_twist_pub = objPubs[i*2+1];
+            ros::Publisher state_pose_pub = objPubs[pubIndex];
+            ros::Publisher state_twist_pub = objPubs[pubIndex+1];
             state_pose_pub.publish(tempPose);
             state_twist_pub.publish(tempTwist);
         }
 
 
         loop_rate.sleep();
-        ++count;
+        // ++count;
     }
 
     return 0;
