@@ -73,16 +73,19 @@ int main(int argc, char **argv)
         ROS_INFO("Current model states: %d\n", modelCount);
         for(int i=0; i<modelCount; i++){
 
-            char* name = curModelStates.name[i].c_str();
+            std::string name = curModelStates.name[i];
             geometry_msgs::Pose tempPose = curModelStates.pose[i];
             geometry_msgs::Twist tempTwist = curModelStates.twist[i];
 
             int pubIndex = -1;
+            ROS_INFO("Publisher count: %d\n", pubCount);
             for(int j=0; j<pubCount/2; j++){
                 if(objectNames[i] == name){
                     pubIndex = j*2;
                 }
             }
+
+            ROS_INFO("Publisher index: %d", pubIndex);
 
             if(pubIndex == -1){
                 std::string ptopic = rootNode + "/" + curModelStates.name[i].c_str() + "/pose";
@@ -92,10 +95,13 @@ int main(int argc, char **argv)
                 objPubs.push_back(state_pose_pub);
                 objPubs.push_back(state_twist_pub);
                 objectNames.push_back(name);
-                pubIndex = objPubs.size() - 1;
-                pubCount += 2;
-                ROS_INFO ("Adding Publisher %s", name);
+                pubCount = objPubs.size();
+                pubIndex = pubCount - 2;
+                ROS_INFO ("Adding Publisher %s", name.c_str());
             }
+
+            ROS_INFO("New publisher index: %d", pubIndex);
+            ROS_INFO("New publisher count: %d", pubCount);
 
 
             ROS_INFO("New Model State: %s\nPosition: %f, %f, %f\nTwist: %f, %f, %f; %f, %f, %f\n\n",
@@ -110,10 +116,15 @@ int main(int argc, char **argv)
                  curModelStates.twist[i].angular.y,
                  curModelStates.twist[i].angular.z);
 
+            ROS_INFO("here1");
             ros::Publisher state_pose_pub = objPubs[pubIndex];
+            ROS_INFO("here2");
             ros::Publisher state_twist_pub = objPubs[pubIndex+1];
-            state_pose_pub.publish(tempPose);
-            state_twist_pub.publish(tempTwist);
+            ROS_INFO("here3");
+            state_pose_pub.publish(curModelStates.pose[i]);
+            ROS_INFO("here4");
+            state_twist_pub.publish(curModelStates.twist[i]);
+            ROS_INFO("here5");
         }
 
 
