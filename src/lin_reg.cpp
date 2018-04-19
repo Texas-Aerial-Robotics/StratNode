@@ -12,6 +12,7 @@ geometry_msgs::PoseStamped waypoint;
 geometry_msgs::PoseStamped newpoint;
 deque<geometry_msgs::PoseStamped> points;
 
+
 void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
  newpoint=*msg;
@@ -39,19 +40,25 @@ int main(int argc, char **argv)
   int count = 0;
   while (ros::ok())
   {
-  double m, sx = 0, sy = 0, sxy = 0, sx2 = 0;
+  double mx,my, sx = 0, sy = 0, sxy = 0, sx2 = 0;
 
     for (i = 0; i <= points.size(); i++){
+    
     sx = sx + points(i).pose.position.x;
     sy = sy + points(i).pose.position.y;
-    sxy = sxy + points(i).pose.position.x * points(i).pose.position.y;
+    st = st + points(i).header.stamp.secs;
+    sxt = sxt + points(i).pose.position.x * points(i).header.stamp.secs;
+    syt = sxt + points(i).pose.position.y * points(i).header.stamp.secs;
     sx2 = sx2 * points(i).pose.position.x * points(i).pose.positon.x;
+    sy2 = sy2 * points(i).pose.position.y * points(i).pose.position.y;
     }
+
     
-    m = ((sy*sx2 - sx * sxy)/(points.size()*sx2-(sx*sx));
+    mx = ((st*sx2 - sx * sxt)/(points.size()*sx2-(sx*sx));
+    my = ((st*sy2 - sy * syt)/(points.size()*sx2-(sx*sx));
     
-    
-    waypoint = points.front().pose 
+    waypoint.pose.position.x = (10 * mx);
+    waypoint.pose.position.y = (10 * my); 
     chatter_pub.publish(waypoint);
     cout<<waypoint<<endl;
     ros::spinOnce();
