@@ -75,7 +75,6 @@ int main(int argc, char **argv)
     waypoint.pose.position.y = (10 * my);
     waypoint.pose.position.z = 2.9; 
     chatter_pub.publish(waypoint);
-    cout<< points.size()<<endl;
     cout<<waypoint<<endl;
     ros::spinOnce();
     loop_rate.sleep();
