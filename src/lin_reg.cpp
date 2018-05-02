@@ -8,6 +8,8 @@
 
 using namespace std;
 
+
+std_msgs::String mode;
 geometry_msgs::PoseStamped RoombaPose;
 geometry_msgs::PoseStamped waypoint;
 geometry_msgs::PoseStamped newpoint;
@@ -45,7 +47,10 @@ int main(int argc, char **argv)
 
   ros::Subscriber sub = n.subscribe("roombaPose", 1, chatterCallback);
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
-
+  ros::Publisher mode_pub = n.advertise<std_msgs::String>("mode", 1);
+ 
+  string ss_mode = "SEARCH";
+  mode.data = ss_mode.c_str();
   ros::Rate loop_rate(10);
 
   int count = 0;
@@ -98,12 +103,16 @@ int main(int argc, char **argv)
     
     if (points.size() >= 8)
     {
+       string ss_mode = "GOTO";
+       mode.data = ss_mode.c_str();
       while (ros::ok())
       {
         chatter_pub.publish(waypoint);
+        mode_pub.publish(mode);
       }
       break;
     }
+    mode_pub.publish(mode);
     ros::spinOnce();
     loop_rate.sleep();
     ++count;
