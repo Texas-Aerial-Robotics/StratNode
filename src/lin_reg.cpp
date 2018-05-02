@@ -3,6 +3,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <sstream>
 #include <deque>
+#include <cmath>
 
 
 using namespace std;
@@ -19,7 +20,7 @@ void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
  newpoint.pose.position.z=2.9;
  if (newpoint.pose.position.x != points.front().pose.position.x || newpoint.pose.position.y != points.front().pose.position.y){
     knew = 1;
-    if (points.size() <= 5){
+    if (points.size() <= 8){
      points.push_front(newpoint);
       cout<<"pop front" << endl;
     }
@@ -53,7 +54,7 @@ int main(int argc, char **argv)
   double mx = 0, my = 0, sx = 0, sy = 0, st = 0, sxt = 0, syt = 0, sy2 = 0, sx2 = 0;
 
 
-    if (points.size() >= 3){
+    if (points.size() >= 8){
        for (int i = 1; i < points.size(); i++){
 
           double nx = points[i].pose.position.x - points.back().pose.position.x;
@@ -84,11 +85,25 @@ int main(int argc, char **argv)
     cout<<"sx2 "<<sx2<<endl;
     cout<<"dx/dt: "<<mx<<endl;
     cout<<"dy/dt: "<<my<<endl;
+    double mxy = sqrt(pow(mx,2) + pow(my,2));
 
-    waypoint.pose.position.x = (10 * mx);
-    waypoint.pose.position.y = (10 * my);
+    mx = mx/mxy;
+    my = my/mxy;
+    cout<<"dx/dt norm: "<<mx<<endl;
+    cout<<"dy/dt norm: "<<my<<endl;
+
+    waypoint.pose.position.x = (10 *.33 *my);
+    waypoint.pose.position.y = (10 *.33 *mx - 2);
     waypoint.pose.position.z = 2.9; 
-    // chatter_pub.publish(waypoint);
+    
+    if (points.size() >= 8)
+    {
+      while (ros::ok())
+      {
+        chatter_pub.publish(waypoint);
+      }
+      break;
+    }
     ros::spinOnce();
     loop_rate.sleep();
     ++count;
