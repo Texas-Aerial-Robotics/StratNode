@@ -14,15 +14,13 @@ geometry_msgs::PoseStamped RoombaPose;
 geometry_msgs::PoseStamped waypoint;
 geometry_msgs::PoseStamped newpoint;
 deque<geometry_msgs::PoseStamped> points;
-bool knew = 0;
 
 void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
  newpoint=*msg;
  newpoint.pose.position.z=2.9;
  if (newpoint.pose.position.x != points.front().pose.position.x || newpoint.pose.position.y != points.front().pose.position.y){
-    knew = 1;
-    if (points.size() <= 8){
+    if (points.size() <= 16){
      points.push_front(newpoint);
       cout<<"push front" << endl;
     }
@@ -43,7 +41,7 @@ int main(int argc, char **argv)
 
   ros::Subscriber sub = n.subscribe("roombaPose", 1, chatterCallback);
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
-  ros::Publisher mode_pub = n.advertise<std_msgs::String>("ss_mode", 1);
+  ros::Publisher mode_pub = n.advertise<std_msgs::String>("mode", 1);
  
   ss_mode << "SEARCH";
   msg.data = ss_mode.str();
@@ -53,16 +51,15 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
   ss_mode.str("");
-  double mx = 0, my = 0, sx = 0, sy = 0, st = 0, sxt = 0, syt = 0, sy2 = 0, sx2 = 0;
+  double mx = 0, my = 0, sx = 0, sy = 0, st = 0, sxt = 0, syt = 0, sy2 = 0, sx2 = 0, st2 = 0, ix = 0, iy = 0;
 
 
-    if (points.size() >= 8){
-       for (int i = 1; i < points.size(); i++){
+    if (points.size() >= 16){
+       for (int i = 0; i < points.size()-1; i++){
 
           double nx = points[i].pose.position.x - points.back().pose.position.x;
           double ny = points[i].pose.position.y - points.back().pose.position.y;
-          double nt = (points[i].header.stamp.sec + points[i].header.stamp.nsec * pow(10,-9)) - (points.back().header.stamp.sec + points.back().header.stamp.nsec * pow(10,-9));
-          cout <<"nt: " << nt << endl;
+          double nt = (points[i].header.stamp.sec + points[i].header.stamp.nsec * pow(10,-9)) - (points.back().header.stamp.sec + points.back().header.stamp.nsec * pow(10,-9));;
           sx = sx + nx;
           sy = sy + ny;
           st = st + nt; 
@@ -70,21 +67,31 @@ int main(int argc, char **argv)
           syt = syt + ny * nt;
           sx2 = sx2 + nx * nx;
           sy2 = sy2 + ny * ny;
-
+          st2 = st2 + nt * nt;
+          cout <<"nt: " << nt << endl;
+          cout <<"sx: " << sx << endl;
+          cout <<"sy: " << sy << endl;
+          cout <<"st: " << st << endl;
+          cout <<"sxt: " << sxt << endl;
+          cout <<"syt: " << syt << endl;
+          cout <<"sx2: " << sx2 << endl;
+          cout <<"sy2: " << sy2 << endl;
+          cout <<"nt: " << nt << endl << endl;
           //cout<<endl<<"point "<< points[i]<<endl;
        }
 
        cout<<"delta T in use: "<<st<<endl;
        cout<<"the back x point is "<<points.back().pose.position.x<<endl;
-
-       mx = ((points.size()-1)*sxt-sx*st)/((points.size()-1)*sx2-(sx*sx));
-       my = ((points.size()-1)*syt-sy*st)/((points.size()-1)*sy2-(sy*sy));
+       
+      //ix = (sx*st2 - st*sxt)/((points.size()-1)*st2-(st*st));
+      //iy = (sy*st2 - sy*syt)/((points.size()-1)*st2-(st*st));
+       mx = ((points.size()-1)*sxt-sx*st)/((points.size()-1)*st2-(st*st));
+       my = ((points.size()-1)*syt-sy*st)/((points.size()-1)*st2-(st*st));
        
     }
     cout<<"N "<<points.size() - 1<<endl;
-    cout<<"sx: "<<sx<<endl;
-    cout<<"sxt "<<sxt<<endl;
-    cout<<"sx2 "<<sx2<<endl;
+    cout<<"x inter: "<<ix<<endl;
+    cout<<"y inter: "<<iy<<endl;
     cout<<"dx/dt: "<<mx<<endl;
     cout<<"dy/dt: "<<my<<endl;
     double mxy = sqrt(pow(mx,2) + pow(my,2));
@@ -94,11 +101,11 @@ int main(int argc, char **argv)
     cout<<"dx/dt norm: "<<mx<<endl;
     cout<<"dy/dt norm: "<<my<<endl;
 
-    waypoint.pose.position.x = (10 *.33 *my);
-    waypoint.pose.position.y = (10 *.33 *mx - 2);
+    waypoint.pose.position.x = (10 *.33 *mx);
+    waypoint.pose.position.y = (10 *.33 *my - 2);
     waypoint.pose.position.z = 2.9; 
     
-    if (points.size() >= 8)
+    if (points.size() >= 16)
     {
       ss_mode << "GOTO";
       msg.data = ss_mode.str();
