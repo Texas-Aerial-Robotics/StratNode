@@ -18,9 +18,9 @@ deque<geometry_msgs::PoseStamped> points;
 void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
  newpoint=*msg;
- newpoint.pose.position.z=2.9;
+ newpoint.pose.position.z=2;
  if (newpoint.pose.position.x != points.front().pose.position.x || newpoint.pose.position.y != points.front().pose.position.y){
-    if (points.size() <= 16){
+    if (points.size() <= 5){
      points.push_front(newpoint);
       cout<<"push front" << endl;
     }
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
   double mx = 0, my = 0, sx = 0, sy = 0, st = 0, sxt = 0, syt = 0, sy2 = 0, sx2 = 0, st2 = 0, ix = 0, iy = 0;
 
 
-    if (points.size() >= 16){
+    if (points.size() >= 5){
        for (int i = 0; i < points.size()-1; i++){
 
           double nx = points[i].pose.position.x - points.back().pose.position.x;
@@ -102,10 +102,10 @@ int main(int argc, char **argv)
     cout<<"dy/dt norm: "<<my<<endl;
 
     waypoint.pose.position.x = (10 *.33 *mx);
-    waypoint.pose.position.y = (10 *.33 *my - 2);
-    waypoint.pose.position.z = 2.9; 
+    waypoint.pose.position.y = (10 *.33 *my);
+    waypoint.pose.position.z = .5; 
     
-    if (points.size() >= 16)
+    if (points.size() >= 5)
     {
       ss_mode << "GOTO";
       msg.data = ss_mode.str();
