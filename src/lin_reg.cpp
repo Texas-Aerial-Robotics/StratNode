@@ -76,7 +76,7 @@ int main(int argc, char **argv)
           cout <<"syt: " << syt << endl;
           cout <<"sx2: " << sx2 << endl;
           cout <<"sy2: " << sy2 << endl;
-          cout <<"nt: " << nt <setHeading< endl << endl;
+          cout <<"nt: " << nt << endl;
           //cout<<endl<<"point "<< points[i]<<endl;
        }
 
