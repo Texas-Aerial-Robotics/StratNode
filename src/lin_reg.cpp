@@ -18,7 +18,7 @@ deque<geometry_msgs::PoseStamped> points;
 void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
  newpoint=*msg;
- newpoint.pose.position.z=2;
+ newpoint.pose.position.z=1.5;
  if (newpoint.pose.position.x != points.front().pose.position.x || newpoint.pose.position.y != points.front().pose.position.y){
     if (points.size() <= 5){
      points.push_front(newpoint);
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
           cout <<"syt: " << syt << endl;
           cout <<"sx2: " << sx2 << endl;
           cout <<"sy2: " << sy2 << endl;
-          cout <<"nt: " << nt << endl << endl;
+          cout <<"nt: " << nt <setHeading< endl << endl;
           //cout<<endl<<"point "<< points[i]<<endl;
        }
 
