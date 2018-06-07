@@ -11,7 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  transformations_ros
 )
+find_package(PythonLibs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -116,8 +118,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+  ${PYTHON_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -203,3 +206,5 @@ add_executable(lin_reg src/lin_reg.cpp)
 target_link_libraries(lin_reg ${catkin_LIBRARIES})
 add_executable(dummy src/dummy.cpp)
 target_link_libraries(dummy ${catkin_LIBRARIES})
+add_executable(plottingTest src/plottingTest.cpp)
+target_link_libraries(plottingTest ${catkin_LIBRARIES} ${PYTHON_LIBRARIES})
