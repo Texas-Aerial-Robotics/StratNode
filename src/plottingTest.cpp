@@ -33,12 +33,16 @@ int main(int argc, char **argv)
   {
     //chatter_pub.publish(waypoint);
     cout << roombaPositions << endl;
-    // x.push_back(roombaPositions.roombaPose.pose.position.x);
-    // y.push_back(roombaPositions.roombaPose.pose.position.y);
-    matplotlibcpp::plot(x, y, "r-");
-    // matplotlibcpp::show();
     ros::spinOnce();
     loop_rate.sleep();
+    if (roombaPositions.roombaPoses.size())
+    {
+      x.push_back(roombaPositions.roombaPoses[0].roombaPose.pose.position.x);
+      y.push_back(roombaPositions.roombaPoses[0].roombaPose.pose.position.y);
+      matplotlibcpp::plot(x, y, "ro");
+      matplotlibcpp::ion();
+      matplotlibcpp::show();
+    }
     ++count;
   }
   return 0;
