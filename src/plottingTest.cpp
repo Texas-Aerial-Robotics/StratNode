@@ -35,13 +35,14 @@ int main(int argc, char **argv)
     cout << roombaPositions << endl;
     ros::spinOnce();
     loop_rate.sleep();
+    matplotlibcpp::ion();
     if (roombaPositions.roombaPoses.size())
     {
       x.push_back(roombaPositions.roombaPoses[0].roombaPose.pose.position.x);
       y.push_back(roombaPositions.roombaPoses[0].roombaPose.pose.position.y);
       matplotlibcpp::plot(x, y, "ro");
-      matplotlibcpp::ion();
-      matplotlibcpp::show();
+      matplotlibcpp::pause(0.001);
+      matplotlibcpp::draw();
     }
     ++count;
   }
