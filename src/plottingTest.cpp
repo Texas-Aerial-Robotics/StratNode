@@ -38,6 +38,8 @@ int main(int argc, char **argv)
     matplotlibcpp::ion();
     if (roombaPositions.roombaPoses.size())
     {
+      matplotlibcpp::xlim(-10, 10);
+      matplotlibcpp::ylim(-10, 10);
       x.push_back(roombaPositions.roombaPoses[0].roombaPose.pose.position.x);
       y.push_back(roombaPositions.roombaPoses[0].roombaPose.pose.position.y);
       matplotlibcpp::plot(x, y, "ro");
