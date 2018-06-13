@@ -1,17 +1,13 @@
-roscore &
+roslaunch gazebo_ros_sim roombaSim.launch
+./startsim.sh 
+roslaunch apm.launch
+roslaunch darknet_ros darknet_ros.launch 
+roslaunch camera_signalman camera_signalman_nodelet.launch
+roslaunch transformations_ros transformations.launch
+rosrun stratnode stratnode
 
-roslaunch roomba_control linReg.launch
-./startsim.sh
-cd ~/Controls-Other/Launch/ && roslaunch apm.launch 
-roslaunch darknet_ros darknet_ros.launch  || darknet1cam.launch
-rosrun transformations_ros simpleTransform  
-roslaunch flight_pkg follow.launch
-rosrun stratnode lin_reg 
-python linRegRoomba.py
-
-
-#in startsim.sh, "mode guided", 
-
-#this is pretty much exclusively for the big machine (|| are for eric's machine)
-
-#new roomba is started with last command
+in apm terminal:
+mode guided
+arm throttle
+takeoff 2
+#these instructions are for Mark's comp, as of 6/12/18
