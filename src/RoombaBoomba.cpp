@@ -1,6 +1,8 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <geometry_msgs/PoseStamped.h>
+#include "transformations_ros/roombaPoses.h"
+#include "transformations_ros/roombaPose.h"
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
@@ -12,20 +14,57 @@
 using namespace std;
 
 std::vector<double> roombax, obstaclex, roombay, obstacley;
-
+geometry_msgs::PoseStamped waypoint;
 void waypoint_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
-	geometry_msgs::PoseStamped waypoint;
+	
 	waypoint = *msg;
-	setDestination(waypoint.pose.position.x,waypoint.pose.position.y,waypoint.pose.position.z);
 }
-
-//get current position of drone
-void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
+class quad
 {
-	current_pose = *msg;
-	ROS_INFO("x: %f y: %f x: %f", current_pose.pose.pose.position.x, current_pose.pose.pose.position.y, current_pose.pose.pose.position.z);
-}
+private:
+	double speed=.75;
+	double xpos;
+	double ypos;
+	double height= 0;
+    double radius= .35;
+public:
+	quad(double x, double y){
+		xpos=x;
+		ypos=y;
+	}
+void setx(double x)
+	{
+		xpos = x;
+	}
+void sety(double y){
+		ypos = y;
+	}
+double getx(){
+		return xpos;
+	}
+double gety(){
+		return ypos;
+	}
+void seth(double h){
+		height=h;
+    }	
+double geth(){
+		return height;
+    }
+void move(double x, double y, double z){
+     double newx, newy, newz,mag;
+     mag = sqrt(pow(x-xpos,2)+pow(y-ypos,2)+pow(z-height,2));
+     if (mag>speed){
+     newx= xpos+(x-xpos)/mag*speed;
+     newy= ypos+(y-ypos)/mag*speed;
+     newz=height+(z-height)/mag*speed;
+     height=newz;
+     xpos=newx;
+     ypos=newy;
+     }
+    }
+};
 
 class TargetRoomba
 {
@@ -159,7 +198,7 @@ int main(int argc, char** argv)
 
 	ros::Rate rate(20.0);
 	ros::Subscriber local_pos_pub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10, waypoint_cb);
-	ros::Subscriber currentPos = nh.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
+	ros::Publisher chatter_pub = nh.advertise<transformations_ros::roombaPoses>("roombaPoses", 1000);
 
 	ROS_INFO("INITILIZING...");
 	for(int i=0; i<100; i++)
@@ -169,7 +208,7 @@ int main(int argc, char** argv)
 	}
 
 	srand(time(NULL));
-
+	quad drone(9.5,9.5);
 	TargetRoomba roomba1(0,0,0);
 	TargetRoomba roomba2(0,0,0);
 	TargetRoomba roomba3(0,0,0);
@@ -224,9 +263,28 @@ int main(int argc, char** argv)
 		theta += obstacleSeparation;
 	}
 
+   double alpha = 1;
+
+	std::map<std::string, std::string> obstacleKeywords;
+	obstacleKeywords["color"] = "blue";
+	obstacleKeywords["marker"] = "o";
+	obstacleKeywords["linestyle"] = "none";
+
+	std::map<std::string, std::string> roombaKeywords;
+	roombaKeywords["color"] = "red";
+	roombaKeywords["marker"] = "o";
+	roombaKeywords["linestyle"] = "none";
+
+    std::map<std::string, std::string> droneKeywords;
+	droneKeywords["color"] = "green";
+	droneKeywords["marker"] = "o";
+	droneKeywords["linestyle"] = "none";
+
 
 	for(int t = 0; t < 600; t++)
 	{
+		ros::spinOnce();
+		drone.move(waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
 		if(t%20 == 0 && t != 0) //rotate 180 every 20 seconds
 		{
 			for(TargetRoomba &r : roombas)
@@ -329,13 +387,22 @@ int main(int argc, char** argv)
 			r.setTheta(r.getTheta()+.066);
 		}
 		//cout<<"t = "<<t<<" r1 ("<<roombas[0].getx()<<","<<roombas[0].gety()<<") r2 ("<<roombas[1].getx()<<","<<roombas[1].gety()<<")"<<endl;
-
+		transformations_ros::roombaPoses roombaPositions;
+		 transformations_ros::roombaPose roombaPoseMsg;
 		for (int i = 0; i < 10; ++i)
 		{
 			roombax.push_back(roombas[i].getx());
 			roombay.push_back(roombas[i].gety());
+			
+			geometry_msgs::PoseStamped roombaPose;
+			roombaPose.pose.position.x = roombas[i].getx();
+			roombaPose.pose.position.y = roombas[i].gety();
+			roombaPose.pose.position.z = 0;
+			roombaPoseMsg.roombaPose = roombaPose;
+			roombaPositions.roombaPoses.push_back(roombaPoseMsg);
 		}
-
+		//publish
+		chatter_pub.publish(roombaPositions);
 		for (int i = 0; i < 4; ++i)
 		{
 			obstaclex.push_back(obstacles[i].getx());
@@ -363,54 +430,77 @@ int main(int argc, char** argv)
 		{
 			r.move();
 		}
-	}
+		std::vector<double> stagingx(10);
+	    std::vector<double> stagingy(10);
+	    std::vector<double> stagingx2(4);
+	    std::vector<double> stagingy2(4);
 
-	matplotlibcpp::xlim(-10, 10);
-	matplotlibcpp::ylim(-10, 10);
-	double alpha = 1;
 
-	std::map<std::string, std::string> obstacleKeywords;
-	obstacleKeywords["color"] = "blue";
-	obstacleKeywords["marker"] = "o";
-	obstacleKeywords["linestyle"] = "none";
+		for(int i=0;i<10;i++){
 
-	std::map<std::string, std::string> roombaKeywords;
-	roombaKeywords["color"] = "red";
-	roombaKeywords["marker"] = "o";
-	roombaKeywords["linestyle"] = "none";
-
-	std::vector<double> stagingx(10);
-	std::vector<double> stagingy(10);
-	std::vector<double> stagingx2(4);
-	std::vector<double> stagingy2(4);
-	for (int i = 0; i < 599; i++)
-	{
-		if ((i % 10 == 0) && alpha > 0)
-		{
-			alpha += 0.002;
-		}
-		for(int j=0; j<10; j++)
-		{
-			stagingx[j] = roombax[i*10+j];
- 			stagingy[j] = roombay[i*10+j];
-
-			if(j<4)
-			{
-				stagingx2[j] = obstaclex[i*4+j];
-				stagingy2[j] = obstacley[i*4+j];
-			}
-		}
+	            stagingx[i]=roombas[i].getx();
+	            stagingy[i]=roombas[i].gety();
+	            if(i<4){
+	            	stagingx2[i]=obstacles[i].getx();
+	            	stagingy2[i]=obstacles[i].gety();
+	            }
+	    }
 
 		matplotlibcpp::clf();
 		matplotlibcpp::xlim(-10, 10);
 		matplotlibcpp::ylim(-10, 10);
 		// matplotlibcpp::title('t=%d' i);
 		matplotlibcpp::plot(stagingx, stagingy, roombaKeywords, .2);
+		matplotlibcpp::plot(stagingx2, stagingy2, obstacleKeywords, 0.2);
+		std::vector<double> dx(1);
+		std::vector<double> dy(1);
+		dx[0] = drone.getx();
+		dy[0] = drone.gety(); 
+		matplotlibcpp::plot(dx, dy, droneKeywords, 0.2);
+		matplotlibcpp::draw();	
 		matplotlibcpp::pause(0.01);
+		ros::Duration(0.01).sleep();
 	}
-	matplotlibcpp::plot(obstaclex, obstacley, obstacleKeywords, 0.2);
-	matplotlibcpp::draw();
-	while(1) {
-		matplotlibcpp::pause(0.001);
-	}
+	// matplotlibcpp::xlim(-10, 10);
+	// matplotlibcpp::ylim(-10, 10);
+	// double alpha = 1;
+
+	// std::map<std::string, std::string> obstacleKeywords;
+	// obstacleKeywords["color"] = "blue";
+	// obstacleKeywords["marker"] = "o";
+	// obstacleKeywords["linestyle"] = "none";
+
+	// std::map<std::string, std::string> roombaKeywords;
+	// roombaKeywords["color"] = "red";
+	// roombaKeywords["marker"] = "o";
+	// roombaKeywords["linestyle"] = "none";
+
+	// std::vector<double> stagingx(10);
+	// std::vector<double> stagingy(10);
+	// std::vector<double> stagingx2(4);
+	// std::vector<double> stagingy2(4);
+	// for (int i = 0; i < 599; i++)
+	// {
+	// 	if ((i % 10 == 0) && alpha > 0)
+	// 	{
+	// 		alpha += 0.002;
+	// 	}
+	// 	for(int j=0; j<10; j++)
+	// 	{
+	// 		stagingx[j] = roombax[i*10+j];
+ // 			stagingy[j] = roombay[i*10+j];
+
+	// 		if(j<4)
+	// 		{
+	// 			stagingx2[j] = obstaclex[i*4+j];
+	// 			stagingy2[j] = obstacley[i*4+j];
+	// 		}
+	// 	}
+
+
+	// }
+	
+	// while(1) {
+	// 	matplotlibcpp::pause(0.001);
+	// }
 };

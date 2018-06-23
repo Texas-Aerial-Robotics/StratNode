@@ -77,6 +77,10 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(10);
 
+  waypoint.pose.position.x = 0;
+  waypoint.pose.position.y = 7.5;
+  waypoint.pose.position.z = .5;
+
   int count = 0;
   while (ros::ok())
   {
@@ -97,6 +101,7 @@ int main(int argc, char **argv)
          matplotlibcpp::draw();
        }
     }
+    chatter_pub.publish(waypoint);
     ++count;
   }
   return 0;
