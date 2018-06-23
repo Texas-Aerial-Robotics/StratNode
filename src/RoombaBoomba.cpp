@@ -36,6 +36,7 @@ private:
 	double ypos;
 	bool xRight;
 	bool yUp;
+	int status = 0;
 public:
 	TargetRoomba(double t, double x, double y)
 	{
@@ -47,6 +48,13 @@ public:
 	{
 		xpos += speed * cos(theta);
 		ypos += speed * sin(theta);
+	}
+	void setStatus(int i)
+	{
+		status = i;
+		// 0 = in-play
+		// 1 = scored
+		// -1 = out of bounds
 	}
 	void setTheta(double t)
 	{
@@ -71,6 +79,10 @@ public:
 	void sety(double y)
 	{
 		ypos = y;
+	}
+	int getStatus()
+	{
+		return status;
 	}
 	double getTheta()
 	{
@@ -215,14 +227,14 @@ int main(int argc, char** argv)
 
 	for(int t = 0; t < 600; t++)
 	{
-		if(t%20 == 0 && t != 0)
+		if(t%20 == 0 && t != 0) //rotate 180 every 20 seconds
 		{
 			for(TargetRoomba &r : roombas)
 			{
 				r.setTheta(r.getTheta()+M_PI);
 			}
 		}
-		else if(t%5 == 0 && t != 0)
+		else if(t%5 == 0 && t != 0) //add random trajectory every 5 seconds
 		{
 			for(TargetRoomba &r : roombas)
 			{
@@ -238,38 +250,75 @@ int main(int argc, char** argv)
 		{
 			bool collision = false;
 			bool flip = false;
-			for(int j = 0; j<10; j++)
+			for(int j = 0; j<5; j++)
 			{
-				if(j<5)
-				{
-					double xSeperation = obstacles[j].getx() - roombas[i].getx();
-					double ySeperation = obstacles[j].gety() - roombas[i].getx();
-					double seperationMagnitude = sqrt(pow(xSeperation, 2.0)+ pow(ySeperation, 2.0));
-					double seperationAngle = asin(ySeperation / seperationMagnitude);
+				flip = false;
+				double xSeperation = obstacles[j].getx() - roombas[i].getx();
+				double ySeperation = obstacles[j].gety() - roombas[i].gety();
+				double seperationMagnitude = sqrt(pow(xSeperation, 2.0)+ pow(ySeperation, 2.0));
+				double seperationAngle = atan2(ySeperation,xSeperation);
 
-					if(seperationMagnitude <= 0.35)
+				if(seperationMagnitude <= 0.35)
+				{
+				// {
+				//   if (seperationAngle <= (obstacles[j].getTheta() + 90) && seperationAngle >= (obstacles[j].getTheta()-90))
+				//   {  cout<<"GAY"<<endl;
+				//     flip = false;
+				//   }
+				//   else if (obstacles[j].getTheta() >= -90 && obstacles[j].getTheta() <= 0)
+				//   {
+				//     if (seperationAngle >= obstacles[j].getTheta() - 90 || seperationAngle <= obstacles[j].getTheta() + 90)
+				//     {  cout<<"GAY"<<endl;
+				//       flip = true;
+				//     }
+				//   }
+				//   else if (obstacles[j].getTheta() <= 90 && obstacles[j].getTheta() >= 0)
+				//   {
+				//     if (seperationAngle <= obstacles[j].getTheta()+90 || seperationAngle >= obstacles[j].getTheta() - 90)
+				//     {  cout<<"TRUEE"<<endl;
+				//       flip = true;
+				//     }
+				//   }
+				//   else if (obstacles[j].getTheta() + 90 <= seperationAngle && obstacles[j].getTheta() - 90 >= seperationAngle)
+				//   {
+				//     cout<<"TRUEEE"<<endl;
+				//     flip = true;
+				//   }
+				// }
+
+					if (seperationAngle <= (roombas[i].getTheta()+M_PI/2) && seperationAngle >= (roombas[i].getTheta()-M_PI/2))
 					{
-						if (seperationAngle <= (obstacles[j].getTheta() + 90) && seperationAngle >= (obstacles[j].getTheta()-90))
+	 					flip = true;
+					}
+				}
+				if(flip)
+				{
+					roombas[i].setTheta(roombas[i].getTheta()+M_PI)  ;
+					cout<<"COLIDETH"<<endl;
+				}
+
+				for(int i=0; i<9;i++)
+				{
+					for(int j=i+1; j<10 ;j++)
+					{
+						bool flip=false;
+						double xSeperation = roombas[i].getx() - roombas[j].getx();
+						double ySeperation = roombas[i].gety() - roombas[j].gety();
+						double seperationMagnitude = sqrt(pow(xSeperation, 2.0)+ pow(ySeperation, 2.0));
+						double seperationAngle = atan2(ySeperation,xSeperation);
+
+						if(seperationMagnitude <= 0.35)
 						{
-							flip = false;
-						}
-						else if (obstacles[j].getTheta() >= -90 && obstacles[j].getTheta() <= 0)
-						{
-							if (seperationAngle >= obstacles[j].getTheta() - 90 || seperationAngle <= obstacles[j].getTheta() + 90)
+							if (seperationAngle <= (roombas[j].getTheta()+M_PI/2) && seperationAngle>= (roombas[j].getTheta()-M_PI/2))
 							{
-								flip = true;
+								flip=true;
 							}
 						}
-						else if (obstacles[j].getTheta() <= 90 && obstacles[j].getTheta() >= 0)
+						if(flip)
 						{
-							if (seperationAngle <= obstacles[j].getTheta()+90 || seperationAngle >= obstacles[j].getTheta() - 90)
-							{
-								flip = true;
-							}
-						}
-						else if (obstacles[j].getTheta() + 90 <= seperationAngle && obstacles[j].getTheta() - 90 >= seperationAngle)
-						{
-							flip = true;
+							roombas[i].setTheta(roombas[i].getTheta()+M_PI);
+							cout<<"COLIDETH ONTO EACHOTHER"<<endl;
+							roombas[j].setTheta(roombas[i].getTheta()+M_PI);
 						}
 					}
 				}
@@ -279,7 +328,7 @@ int main(int argc, char** argv)
 		{
 			r.setTheta(r.getTheta()+.066);
 		}
-		cout<<"t = "<<t<<" r1 ("<<roombas[0].getx()<<","<<roombas[0].gety()<<") r2 ("<<roombas[1].getx()<<","<<roombas[1].gety()<<")"<<endl;
+		//cout<<"t = "<<t<<" r1 ("<<roombas[0].getx()<<","<<roombas[0].gety()<<") r2 ("<<roombas[1].getx()<<","<<roombas[1].gety()<<")"<<endl;
 
 		for (int i = 0; i < 10; ++i)
 		{
@@ -295,7 +344,20 @@ int main(int argc, char** argv)
 
 		for(TargetRoomba &r : roombas)
 		{
-			r.move();
+			if(r.getStatus()==0)
+			{
+				r.move();
+				if(abs(r.getx())<10 && r.gety()>10)
+				{
+					r.setStatus(1);
+					cout<<"ROOMBA SCORED!!!"<<endl;
+				}
+				else if(abs(r.getx())>10 || abs(r.gety())>10)
+				{
+					r.setStatus(-1);
+					cout<<"ROOMBA LOST :("<<endl;
+				}
+			}
 		}
 		for(ObstacleRoomba &r : obstacles)
 		{
@@ -317,17 +379,34 @@ int main(int argc, char** argv)
 	roombaKeywords["marker"] = "o";
 	roombaKeywords["linestyle"] = "none";
 
-	std::vector<double> stagingx(1);
-	std::vector<double> stagingy(1);
-	for (int i = roombax.size(); i > 0; --i)
+	std::vector<double> stagingx(10);
+	std::vector<double> stagingy(10);
+	std::vector<double> stagingx2(4);
+	std::vector<double> stagingy2(4);
+	for (int i = 0; i < 599; i++)
 	{
 		if ((i % 10 == 0) && alpha > 0)
 		{
-			alpha -= 0.002;
+			alpha += 0.002;
 		}
-		stagingx[0] = roombax[i];
-		stagingy[0] = roombay[i];
-		matplotlibcpp::plot(stagingx, stagingy, roombaKeywords, alpha);
+		for(int j=0; j<10; j++)
+		{
+			stagingx[j] = roombax[i*10+j];
+ 			stagingy[j] = roombay[i*10+j];
+
+			if(j<4)
+			{
+				stagingx2[j] = obstaclex[i*4+j];
+				stagingy2[j] = obstacley[i*4+j];
+			}
+		}
+
+		matplotlibcpp::clf();
+		matplotlibcpp::xlim(-10, 10);
+		matplotlibcpp::ylim(-10, 10);
+		// matplotlibcpp::title('t=%d' i);
+		matplotlibcpp::plot(stagingx, stagingy, roombaKeywords, .2);
+		matplotlibcpp::pause(0.01);
 	}
 	matplotlibcpp::plot(obstaclex, obstacley, obstacleKeywords, 0.2);
 	matplotlibcpp::draw();
