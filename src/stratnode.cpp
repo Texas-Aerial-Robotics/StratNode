@@ -1,18 +1,69 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <geometry_msgs/PoseStamped.h>
+#include "transformations_ros/roombaPoses.h"
+#include "transformations_ros/roombaPose.h"
 #include <sstream>
+#include "matplotlibcpp.h"
+#include <cmath>
+#include <deque>
+#include <vector>
+#include <iostream>
 
 using namespace std;
 
-geometry_msgs::PoseStamped RoombaPose;
+int MAX_POINTS = 10;
+std::vector<double> x, y;
 geometry_msgs::PoseStamped waypoint;
+transformations_ros::roombaPoses roombaPositions;
+vector<deque<geometry_msgs::PoseStamped>> decks;
 
-void chatterCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
- waypoint=*msg;
- waypoint.pose.position.z=1.5;
- 
+ roombaPositions = *msg;
+
+
+ for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
+  int rpt = 0;
+    if (decks.size()== 0){
+       decks.push_back(deque<geometry_msgs::PoseStamped>());
+       decks[0].push_front(roombaPositions.roombaPoses[i].roombaPose);
+    }
+    for (int j=0; j < decks.size(); j++){
+       if (sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[j].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[j].front().pose.position.y,2)) <= 4){
+        rpt = 1;
+      }
+    }
+        switch(rpt){ 
+
+          case 0:
+           decks.push_back(deque<geometry_msgs::PoseStamped>());
+           decks[decks.size()-1].push_front(roombaPositions.roombaPoses[i].roombaPose);
+           cout << "New roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << decks.size()-1 << endl;
+
+          case 1:
+           int min = 0;
+           vector<double> score(decks.size());
+           for (int k = 0; k < score.size(); k++){
+             score[k] = sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[k].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[k].front().pose.position.y,2));
+               if (k > 0){
+                if (score[k] < score[k-1]){
+                  min = k;
+                }
+              }  
+            }
+
+             if (decks[min].size() <= MAX_POINTS){
+               decks[min].push_front(roombaPositions.roombaPoses[i].roombaPose);
+               cout << "detection at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << " belongs to roomba #" << min << endl;
+             }
+             else {
+               decks[min].pop_back();
+               decks[min].push_front(roombaPositions.roombaPoses[i].roombaPose);
+               cout << "detection at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << " belongs to roomba #" << min << endl;
+             }    
+         }
+  }
 }
 
 int main(int argc, char **argv)
@@ -21,20 +72,32 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("roombaPose", 1, chatterCallback);
-  ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1000);
+  ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 1, roomba_cb);
+  ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
 
   ros::Rate loop_rate(10);
 
   int count = 0;
   while (ros::ok())
   {
-    chatter_pub.publish(waypoint);
-    cout<<waypoint<<endl;
+    
+    //cout << points << endl;
     ros::spinOnce();
     loop_rate.sleep();
+    matplotlibcpp::ion();
+    if (roombaPositions.roombaPoses.size())
+    {
+      matplotlibcpp::xlim(-10, 10);
+      matplotlibcpp::ylim(-10, 10);
+      for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
+         x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);
+         y.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
+         matplotlibcpp::plot(x, y, "ro");
+         matplotlibcpp::pause(0.001);
+         matplotlibcpp::draw();
+       }
+    }
     ++count;
   }
   return 0;
 }
-
