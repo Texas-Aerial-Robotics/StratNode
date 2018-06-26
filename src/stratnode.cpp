@@ -9,11 +9,12 @@
 #include <deque>
 #include <vector>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
 int MAX_POINTS = 10;
-std::vector<double> x, y;
+
 geometry_msgs::PoseStamped waypoint;
 transformations_ros::roombaPoses roombaPositions;
 vector<deque<geometry_msgs::PoseStamped>> decks;
@@ -68,6 +69,8 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 
 int main(int argc, char **argv)
 {
+  std::vector<double> x(1);
+  std::vector<double> y(1);
   ros::init(argc, argv, "stratnode");
 
   ros::NodeHandle n;
@@ -75,7 +78,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 1, roomba_cb);
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
 
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(100);
 
   waypoint.pose.position.x = 0;
   waypoint.pose.position.y = 7.5;
@@ -93,13 +96,25 @@ int main(int argc, char **argv)
     {
       matplotlibcpp::xlim(-10, 10);
       matplotlibcpp::ylim(-10, 10);
-      for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
-         x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);
-         y.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
-         matplotlibcpp::plot(x, y, "ro");
-         matplotlibcpp::pause(0.001);
-         matplotlibcpp::draw();
-       }
+      // for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
+      //    x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);
+      //    y.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
+      //    matplotlibcpp::plot(x, y, "ro");
+      //    matplotlibcpp::pause(0.001);
+      //    matplotlibcpp::draw();
+      //  }
+      string colour[10]= {"bo","go","ro","co","mo","yo","ko","bv","gv","rv"};
+     
+      for (int j=0; j < decks.size(); j++){
+          //cout<<decks[j][0]<<endl;
+          //cout<<colour[j]<<endl;
+          x[0]=decks[0][j].pose.position.x;
+          y[0]=decks[0][j].pose.position.y;
+          matplotlibcpp::plot(x, y, colour[j]);
+          matplotlibcpp::pause(0.001);
+          matplotlibcpp::draw(); 
+
+      }
     }
     chatter_pub.publish(waypoint);
     ++count;

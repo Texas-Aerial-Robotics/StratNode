@@ -3,6 +3,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include "transformations_ros/roombaPoses.h"
 #include "transformations_ros/roombaPose.h"
+#include <rosgraph_msgs/Clock.h>
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
@@ -28,6 +29,7 @@ private:
 	double ypos;
 	double height= 0;
     double radius= .35;
+    double dt=.1;
 public:
 	quad(double x, double y){
 		xpos=x;
@@ -55,10 +57,10 @@ double geth(){
 void move(double x, double y, double z){
      double newx, newy, newz,mag;
      mag = sqrt(pow(x-xpos,2)+pow(y-ypos,2)+pow(z-height,2));
-     if (mag>speed){
-     newx= xpos+(x-xpos)/mag*speed;
-     newy= ypos+(y-ypos)/mag*speed;
-     newz=height+(z-height)/mag*speed;
+     if (mag>speed*dt){
+     newx= xpos+(x-xpos)/mag*speed*dt;
+     newy= ypos+(y-ypos)/mag*speed*dt;
+     newz=height+(z-height)/mag*speed*dt;
      height=newz;
      xpos=newx;
      ypos=newy;
@@ -76,6 +78,7 @@ private:
 	bool xRight;
 	bool yUp;
 	int status = 0;
+	double dt=.1;
 public:
 	TargetRoomba(double t, double x, double y)
 	{
@@ -85,8 +88,8 @@ public:
 	}
 	void move()
 	{
-		xpos += speed * cos(theta);
-		ypos += speed * sin(theta);
+		xpos += speed *dt* cos(theta);
+		ypos += speed * dt*sin(theta);
 	}
 	void setStatus(int i)
 	{
@@ -198,13 +201,15 @@ int main(int argc, char** argv)
 
 	ros::Rate rate(20.0);
 	ros::Subscriber local_pos_pub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10, waypoint_cb);
-	ros::Publisher chatter_pub = nh.advertise<transformations_ros::roombaPoses>("roombaPoses", 1000);
+	ros::Publisher chatter_pub = nh.advertise<transformations_ros::roombaPoses>("roombaPoses", 1);
+	ros::Publisher clock_pub = nh.advertise<rosgraph_msgs::Clock>("clock", 1);
 
+	rosgraph_msgs::Clock simtime_msg;
 	ROS_INFO("INITILIZING...");
-	for(int i=0; i<100; i++)
+	for(int i =0;i<10000;i++)
 	{
-		ros::spinOnce();
-		ros::Duration(0.01).sleep();
+		simtime_msg.clock = ros::Time(i);
+		clock_pub.publish(simtime_msg);
 	}
 
 	srand(time(NULL));
@@ -234,6 +239,7 @@ int main(int argc, char** argv)
 	double targetSeparation = M_PI / 5;
 
 	double theta = 0;
+
 	for (int i = 0; i < 10; i++)
 	{
 		roombas[i].setTheta(theta);
@@ -279,20 +285,28 @@ int main(int argc, char** argv)
 	droneKeywords["color"] = "green";
 	droneKeywords["marker"] = "o";
 	droneKeywords["linestyle"] = "none";
-
-
-	for(int t = 0; t < 600; t++)
-	{
+	double dt=.1;
+	double T_MAX=.1;
+	double I_MAX=T_MAX/dt;
+	double t;
+	
+	for(int iter = 0; iter < I_MAX; iter++)
+	{   
 		ros::spinOnce();
+		
+		t=iter*dt;
+		simtime_msg.clock = ros::Time(t);
+		clock_pub.publish(simtime_msg);
+		
 		drone.move(waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
-		if(t%20 == 0 && t != 0) //rotate 180 every 20 seconds
+		if(iter%200 == 0 && iter != 0) //rotate 180 every 20 seconds
 		{
 			for(TargetRoomba &r : roombas)
 			{
 				r.setTheta(r.getTheta()+M_PI);
 			}
 		}
-		else if(t%5 == 0 && t != 0) //add random trajectory every 5 seconds
+		else if(iter%50 == 0 && iter != 0) //add random trajectory every 5 seconds
 		{
 			for(TargetRoomba &r : roombas)
 			{
@@ -384,7 +398,7 @@ int main(int argc, char** argv)
 		}
 		for(ObstacleRoomba &r : obstacles)
 		{
-			r.setTheta(r.getTheta()+.066);
+			r.setTheta(r.getTheta()+.066*dt);
 		}
 		//cout<<"t = "<<t<<" r1 ("<<roombas[0].getx()<<","<<roombas[0].gety()<<") r2 ("<<roombas[1].getx()<<","<<roombas[1].gety()<<")"<<endl;
 		transformations_ros::roombaPoses roombaPositions;
@@ -430,6 +444,9 @@ int main(int argc, char** argv)
 		{
 			r.move();
 		}
+
+
+		if(iter%10==0){
 		std::vector<double> stagingx(10);
 	    std::vector<double> stagingy(10);
 	    std::vector<double> stagingx2(4);
@@ -458,8 +475,10 @@ int main(int argc, char** argv)
 		dy[0] = drone.gety(); 
 		matplotlibcpp::plot(dx, dy, droneKeywords, 0.2);
 		matplotlibcpp::draw();	
-		matplotlibcpp::pause(0.01);
-		ros::Duration(0.01).sleep();
+		matplotlibcpp::pause(0.4);
+		//ros::Duration(0.001).sleep();
+	   }
+
 	}
 	// matplotlibcpp::xlim(-10, 10);
 	// matplotlibcpp::ylim(-10, 10);
