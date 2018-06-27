@@ -476,7 +476,7 @@ int main(int argc, char** argv)
 		dy[0] = drone.gety(); 
 		matplotlibcpp::plot(dx, dy, droneKeywords, 0.2);
 		matplotlibcpp::draw();	
-		matplotlibcpp::pause(0.4);
+		matplotlibcpp::pause(1.5);
 		//ros::Duration(0.001).sleep();
 	   }
 
