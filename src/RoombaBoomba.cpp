@@ -286,13 +286,13 @@ int main(int argc, char** argv)
 	droneKeywords["marker"] = "o";
 	droneKeywords["linestyle"] = "none";
 	double dt=.1;
-	double T_MAX=.1;
+	double T_MAX=600;
 	double I_MAX=T_MAX/dt;
 	double t;
 	
 	for(int iter = 0; iter < I_MAX; iter++)
 	{   
-		ros::spinOnce();
+		
 		
 		t=iter*dt;
 		simtime_msg.clock = ros::Time(t);
@@ -415,6 +415,7 @@ int main(int argc, char** argv)
 			roombaPoseMsg.roombaPose = roombaPose;
 			roombaPositions.roombaPoses.push_back(roombaPoseMsg);
 		}
+		ros::spinOnce();
 		//publish
 		chatter_pub.publish(roombaPositions);
 		for (int i = 0; i < 4; ++i)
@@ -480,6 +481,7 @@ int main(int argc, char** argv)
 	   }
 
 	}
+	ros::Duration(0.001).sleep();
 	// matplotlibcpp::xlim(-10, 10);
 	// matplotlibcpp::ylim(-10, 10);
 	// double alpha = 1;
@@ -522,4 +524,4 @@ int main(int argc, char** argv)
 	// while(1) {
 	// 	matplotlibcpp::pause(0.001);
 	// }
-};
+}

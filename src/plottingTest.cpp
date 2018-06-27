@@ -27,7 +27,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
   ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 1, chatterCallback);
-  ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1000);
+  ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 10);
 
   ros::Rate loop_rate(10);
 

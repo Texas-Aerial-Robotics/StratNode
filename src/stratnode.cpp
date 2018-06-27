@@ -23,15 +23,18 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
  roombaPositions = *msg;
 
+ cout<<roombaPositions;
 
  for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
+
   int rpt = 0;
     if (decks.size()== 0){
+      cout<<"URMOM"<<endl;
        decks.push_back(deque<geometry_msgs::PoseStamped>());
        decks[0].push_front(roombaPositions.roombaPoses[i].roombaPose);
     }
     for (int j=0; j < decks.size(); j++){
-       if (sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[j].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[j].front().pose.position.y,2)) <= 4){
+       if (sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[j].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[j].front().pose.position.y,2)) <= .5){
         rpt = 1;
       }
     }
@@ -44,6 +47,7 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 
           case 1:
            int min = 0;
+           cout<<decks.size();
            vector<double> score(decks.size());
            for (int k = 0; k < score.size(); k++){
              score[k] = sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[k].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[k].front().pose.position.y,2));
@@ -108,8 +112,9 @@ int main(int argc, char **argv)
       for (int j=0; j < decks.size(); j++){
           //cout<<decks[j][0]<<endl;
           //cout<<colour[j]<<endl;
-          x[0]=decks[0][j].pose.position.x;
-          y[0]=decks[0][j].pose.position.y;
+
+          x[0]=decks[j][0].pose.position.x;
+          y[0]=decks[j][0].pose.position.y;
           matplotlibcpp::plot(x, y, colour[j]);
           matplotlibcpp::pause(0.001);
           matplotlibcpp::draw(); 

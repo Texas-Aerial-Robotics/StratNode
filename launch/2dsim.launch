@@ -1,5 +1,5 @@
 <launch>
      <param name="/use_sim_time" value="true" /> 
-     <node name="sim" pkg="stratnode" type="RoombaBoomba" output="screen"></node>
      <node name="stratnode" pkg="stratnode" type="stratnode" output="screen"></node>
+     <node name="sim" pkg="stratnode" type="RoombaBoomba" output="screen"></node>
 </launch>
