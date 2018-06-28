@@ -479,7 +479,7 @@ int main(int argc, char** argv)
 		matplotlibcpp::pause(1.5);
 		//ros::Duration(0.001).sleep();
 	   }
-
+	   matplotlibcpp::pause(0.2);
 	}
 	ros::Duration(0.001).sleep();
 	// matplotlibcpp::xlim(-10, 10);
