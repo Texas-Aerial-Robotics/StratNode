@@ -413,6 +413,7 @@ int main(int argc, char** argv)
 			roombaPose.pose.position.y = roombas[i].gety();
 			roombaPose.pose.position.z = 0;
 			roombaPoseMsg.roombaPose = roombaPose;
+			roombaPoseMsg.roombaPose.header.stamp = ros::Time(t);
 			roombaPositions.roombaPoses.push_back(roombaPoseMsg);
 		}
 		ros::spinOnce();
@@ -479,6 +480,7 @@ int main(int argc, char** argv)
 		matplotlibcpp::pause(1.5);
 		//ros::Duration(0.001).sleep();
 	   }
+	   matplotlibcpp::pause(.2);
 
 	}
 	ros::Duration(0.001).sleep();

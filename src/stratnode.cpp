@@ -24,7 +24,7 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
  roombaPositions = *msg;
 
- cout<<roombaPositions;
+ //cout<<roombaPositions;
      if (decks.size()== 0){
       cout<<"URMOM"<<endl;
        decks.push_back(deque<geometry_msgs::PoseStamped>());
@@ -43,7 +43,7 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
         dist=temp;
         ctr=j;
       }
-      cout<<temp<<endl;
+      //cout<<temp<<endl;
        
     }
     if ( dist<= .5){
@@ -88,6 +88,18 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
          
   }
 }
+void timeCheck()
+{
+  ros::Time currentTime = ros::Time::now();
+  double currentTime_d = currentTime.toSec();  
+  double dt;
+  for (int i=0; i<10; i++)
+  {
+    dt = currentTime_d - decks[i].front().header.stamp.toSec();
+    cout << "dT " << dt << endl;
+
+  }
+}
 
 int main(int argc, char **argv)
 {
@@ -109,9 +121,12 @@ int main(int argc, char **argv)
   int count = 0;
   while (ros::ok())
   {
-    
-    //cout << points << endl;
+    if (decks.size() > 0)
+    {
+      timeCheck();
+    }
     ros::spinOnce();
+
     loop_rate.sleep();
     matplotlibcpp::ion();
     if (roombaPositions.roombaPoses.size())
