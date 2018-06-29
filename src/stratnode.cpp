@@ -14,6 +14,7 @@
 using namespace std;
 
 int MAX_POINTS = 10;
+int marker=0; 
 
 geometry_msgs::PoseStamped waypoint;
 transformations_ros::roombaPoses roombaPositions;
@@ -58,6 +59,15 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
            decks[decks.size()-1].push_front(roombaPositions.roombaPoses[i].roombaPose);
            cout << "New roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << decks.size()-1 << endl;
          }else{
+     
+          while (decks[marker].size()>1)
+              { 
+                
+                decks[marker].pop_back();
+              }
+           
+           decks[marker].push_front(roombaPositions.roombaPoses[i].roombaPose);
+
            cout<< "No queue matches current roomba at FUCKU"<<endl;
 
          }
@@ -91,13 +101,35 @@ void timeCheck()
 {
   ros::Time currentTime = ros::Time::now();
   double currentTime_d = currentTime.toSec();  
-  double dt;
-  for (int i=0; i<10; i++)
+  double dt=0;
+  double temp;
+  double dt2;
+  for (int i=0; i<decks.size(); i++)
   {
-    dt = currentTime_d - decks[i].front().header.stamp.toSec();
-    cout << "dT " << dt << endl;
+    temp = currentTime_d - decks[i].front().header.stamp.toSec();
+    if(temp>dt){
+      dt=temp;
+      marker=i;
+      cout<<marker<<endl;
+     }
+
+
+    cout << "DT "; 
+    for (int j=decks[i].size()-1; j>=0; j--)
+    {
+      dt2 = currentTime_d - decks[i][j].header.stamp.toSec();
+      cout << " " << dt2;
+    }
+    cout << " " << endl;
+
 
   }
+    
+
+
+  
+
+  cout << "dT " << dt << endl;
 }
 
 int main(int argc, char **argv)
@@ -122,6 +154,7 @@ int main(int argc, char **argv)
   {
     if (decks.size() > 0)
     {
+      
       timeCheck();
     }
     ros::spinOnce();
@@ -129,9 +162,10 @@ int main(int argc, char **argv)
     loop_rate.sleep();
     matplotlibcpp::ion();
     if (roombaPositions.roombaPoses.size())
-    {
+    { 
       matplotlibcpp::xlim(-10, 10);
       matplotlibcpp::ylim(-10, 10);
+     
       // for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
       //    x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);
       //    y.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
@@ -144,7 +178,7 @@ int main(int argc, char **argv)
       for (int j=0; j < decks.size(); j++){
           //cout<<decks[j][0]<<endl;
           //cout<<colour[j]<<endl;
-
+        
           x[0]=decks[j][0].pose.position.x;
           y[0]=decks[j][0].pose.position.y;
           matplotlibcpp::plot(x, y, colour[j]);
@@ -152,9 +186,15 @@ int main(int argc, char **argv)
           matplotlibcpp::draw(); 
 
       }
+
     }
+
     chatter_pub.publish(waypoint);
     ++count;
+    if(count%20==0){
+     matplotlibcpp::clf();
+    }
   }
   return 0;
+
 }

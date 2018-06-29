@@ -285,11 +285,13 @@ int main(int argc, char** argv)
 	droneKeywords["color"] = "green";
 	droneKeywords["marker"] = "o";
 	droneKeywords["linestyle"] = "none";
-	double dt=.1;
+	double dt=.2;
 	double T_MAX=600;
 	double I_MAX=T_MAX/dt;
 	double t;
-	
+	int turnTime, shakeTime;
+	turnTime=20/dt;
+	shakeTime=5/dt;
 	for(int iter = 0; iter < I_MAX; iter++)
 	{   
 		
@@ -299,14 +301,14 @@ int main(int argc, char** argv)
 		clock_pub.publish(simtime_msg);
 		
 		drone.move(waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
-		if(iter%200 == 0 && iter != 0) //rotate 180 every 20 seconds
+		if(iter%turnTime == 0 && iter != 0) //rotate 180 every 20 seconds
 		{
 			for(TargetRoomba &r : roombas)
 			{
 				r.setTheta(r.getTheta()+M_PI);
 			}
 		}
-		else if(iter%50 == 0 && iter != 0) //add random trajectory every 5 seconds
+		else if(iter%shakeTime == 0 && iter!= 0) //add random trajectory every 5 seconds
 		{
 			for(TargetRoomba &r : roombas)
 			{
@@ -477,15 +479,12 @@ int main(int argc, char** argv)
 		dy[0] = drone.gety(); 
 		matplotlibcpp::plot(dx, dy, droneKeywords, 0.2);
 		matplotlibcpp::draw();	
-		matplotlibcpp::pause(1.5);
+		matplotlibcpp::pause(.1);
 		//ros::Duration(0.001).sleep();
 	   }
-<<<<<<< HEAD
-	   matplotlibcpp::pause(.2);
 
-=======
-	   matplotlibcpp::pause(0.2);
->>>>>>> 97117a47d675b35467bbc856dd703a7a3a821875
+	   matplotlibcpp::pause(.1);
+
 	}
 	ros::Duration(0.001).sleep();
 	// matplotlibcpp::xlim(-10, 10);
