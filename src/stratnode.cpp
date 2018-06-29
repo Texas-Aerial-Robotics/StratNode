@@ -24,7 +24,7 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
  roombaPositions = *msg;
 
- //cout<<roombaPositions;
+
      if (decks.size()== 0){
       cout<<"URMOM"<<endl;
        decks.push_back(deque<geometry_msgs::PoseStamped>());
@@ -43,25 +43,24 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
         dist=temp;
         ctr=j;
       }
-      //cout<<temp<<endl;
        
     }
     if ( dist<= .5){
           //Found roomba close to deck[j] and adding it to the queue
-          decks[ctr].push_front(roombaPositions.roombaPoses[ctr].roombaPose);
-          cout << "roomba detected at " << roombaPositions.roombaPoses[ctr].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[ctr].roombaPose.pose.position.y << ". This is roomba #" << ctr<< endl;
+          decks[ctr].push_front(roombaPositions.roombaPoses[i].roombaPose);
+          cout << "roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << ctr<< endl;
+            cout<< "Located "<<dist << "away from nearest queue"<<endl;
           if(decks[ctr].size() >= MAX_POINTS){decks[ctr].pop_back();}
-
-
-          rpt=1;
-          
-      }
-        switch(rpt){ 
-
-          case 0:
+        }else{
+           cout<< "Located "<<dist << "away from nearest queue"<<endl;
+           if(decks.size()<10){ 
            decks.push_back(deque<geometry_msgs::PoseStamped>());
            decks[decks.size()-1].push_front(roombaPositions.roombaPoses[i].roombaPose);
            cout << "New roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << decks.size()-1 << endl;
+         }else{
+           cout<< "No queue matches current roomba at FUCKU"<<endl;
+
+         }
 
           // case 1:
           //  int min = 0;

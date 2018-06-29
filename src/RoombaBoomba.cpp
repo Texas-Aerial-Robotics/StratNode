@@ -480,8 +480,12 @@ int main(int argc, char** argv)
 		matplotlibcpp::pause(1.5);
 		//ros::Duration(0.001).sleep();
 	   }
+<<<<<<< HEAD
 	   matplotlibcpp::pause(.2);
 
+=======
+	   matplotlibcpp::pause(0.2);
+>>>>>>> 97117a47d675b35467bbc856dd703a7a3a821875
 	}
 	ros::Duration(0.001).sleep();
 	// matplotlibcpp::xlim(-10, 10);
