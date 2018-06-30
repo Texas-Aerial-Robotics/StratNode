@@ -21,6 +21,11 @@ transformations_ros::roombaPoses roombaPositions;
 vector<deque<geometry_msgs::PoseStamped>> decks;
 double dist=90000;
 double temp;
+struct slope
+{
+  float mxdt;
+  float mydt;
+};
 void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
  roombaPositions = *msg;
@@ -46,7 +51,7 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
       }
        
     }
-    if ( dist<= .5){
+    if ( dist<= .8){
           //Found roomba close to deck[j] and adding it to the queue
           decks[ctr].push_front(roombaPositions.roombaPoses[i].roombaPose);
           cout << "roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << ctr<< endl;
@@ -97,6 +102,44 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
          
   }
 }
+slope linreg(deque<geometry_msgs::PoseStamped> points)
+{
+  slope currentSlope;
+  double mx = 0, my = 0, sx = 0, sy = 0, st = 0, sxt = 0, syt = 0, sy2 = 0, sx2 = 0, st2 = 0, ix = 0, iy = 0;
+  for (int i = 0; i < points.size()-1; i++){
+
+        double nx = points[i].pose.position.x - points.back().pose.position.x;
+        double ny = points[i].pose.position.y - points.back().pose.position.y;
+        double nt = points[i].header.stamp.toSec() - points.back().header.stamp.toSec();
+        sx = sx + nx;
+        sy = sy + ny;
+        st = st + nt; 
+        sxt = sxt + nx * nt;
+        syt = syt + ny * nt;
+        sx2 = sx2 + nx * nx;
+        sy2 = sy2 + ny * ny;
+        st2 = st2 + nt * nt;
+        // cout <<"nt: " << nt << endl;
+        // cout <<"sx: " << sx << endl;
+        // cout <<"sy: " << sy << endl;
+        // cout <<"st: " << st << endl;
+        // cout <<"sxt: " << sxt << endl;
+        // cout <<"syt: " << syt << endl;
+        // cout <<"sx2: " << sx2 << endl;
+        // cout <<"sy2: " << sy2 << endl;
+        // cout <<"nt: " << nt << endl;
+        //cout<<endl<<"point "<< points[i]<<endl;
+     }
+
+     cout<<"delta T in use: "<<st<<endl;
+     cout<<"the back x point is "<<points.back().pose.position.x<<endl;
+     
+    //ix = (sx*st2 - st*sxt)/((points.size()-1)*st2-(st*st));
+    //iy = (sy*st2 - sy*syt)/((points.size()-1)*st2-(st*st));
+     currentSlope.mxdt = ((points.size()-1)*sxt-sx*st)/((points.size()-1)*st2-(st*st)); // dx/dt
+     currentSlope.mydt = ((points.size()-1)*syt-sy*st)/((points.size()-1)*st2-(st*st)); // dy/dt
+  return currentSlope;
+}
 void timeCheck()
 {
   ros::Time currentTime = ros::Time::now();
@@ -132,6 +175,24 @@ void timeCheck()
   cout << "dT " << dt << endl;
 }
 
+void target()
+{
+  for(int i=0; i<decks.size(); i++)
+  {
+    if (decks[i].size() > 4)
+    {
+      slope currentSlope;
+      currentSlope = linreg(decks[i]);
+      cout << "current slope x " << currentSlope.mxdt << " y " << currentSlope.mydt <<endl;
+      float dydx = currentSlope.mydt * (1/currentSlope.mxdt);
+      float xInt = dydx*(decks[i].front().pose.position.y - (-.5)) +  decks[i].front().pose.position.x;
+      if (xInt > -.5 && xInt < 19.5 && currentSlope.mydt < 0)
+      {
+        cout << "Possible target roomba#" << i << " mydt " << currentSlope.mydt << endl;
+      }
+    }
+  } 
+}
 int main(int argc, char **argv)
 {
   std::vector<double> x(1);
@@ -148,14 +209,25 @@ int main(int argc, char **argv)
   waypoint.pose.position.x = 0;
   waypoint.pose.position.y = 7.5;
   waypoint.pose.position.z = .5;
-
+  int mode = 0;
   int count = 0;
   while (ros::ok())
   {
+
+    //check if data has been recieved
     if (decks.size() > 0)
     {
-      
+      //Clear old decks
       timeCheck();
+
+      //decide if there is enough data to execute an interaction 
+      for(int i=0; i<decks.size(); i++)
+      {
+        if (decks[i].size() > 4)
+        {
+          target();
+        }
+      }
     }
     ros::spinOnce();
 
@@ -163,8 +235,8 @@ int main(int argc, char **argv)
     matplotlibcpp::ion();
     if (roombaPositions.roombaPoses.size())
     { 
-      matplotlibcpp::xlim(-10, 10);
-      matplotlibcpp::ylim(-10, 10);
+      matplotlibcpp::xlim(-.5, 19.5);
+      matplotlibcpp::ylim(-.5, 19.5);
      
       // for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
       //    x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);

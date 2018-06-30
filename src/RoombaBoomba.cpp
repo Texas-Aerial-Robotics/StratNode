@@ -300,7 +300,7 @@ int main(int argc, char** argv)
 		simtime_msg.clock = ros::Time(t);
 		clock_pub.publish(simtime_msg);
 		
-		drone.move(waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
+		drone.move(waypoint.pose.position.x - 9.5, waypoint.pose.position.y - 9.5, waypoint.pose.position.z);
 		if(iter%turnTime == 0 && iter != 0) //rotate 180 every 20 seconds
 		{
 			for(TargetRoomba &r : roombas)
@@ -411,8 +411,9 @@ int main(int argc, char** argv)
 			roombay.push_back(roombas[i].gety());
 			
 			geometry_msgs::PoseStamped roombaPose;
-			roombaPose.pose.position.x = roombas[i].getx();
-			roombaPose.pose.position.y = roombas[i].gety();
+			//add correction to gym frame
+			roombaPose.pose.position.x = roombas[i].getx()+9.5;
+			roombaPose.pose.position.y = roombas[i].gety()+9.5;
 			roombaPose.pose.position.z = 0;
 			roombaPoseMsg.roombaPose = roombaPose;
 			roombaPoseMsg.roombaPose.header.stamp = ros::Time(t);
