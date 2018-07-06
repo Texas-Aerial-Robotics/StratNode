@@ -24,7 +24,7 @@ void waypoint_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 class quad
 {
 private:
-	double speed=.75;
+	double speed=1.0;
 	double xpos;
 	double ypos;
 	double height= 0;
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 	ros::NodeHandle nh;
 
 	ros::Rate rate(20.0);
-	ros::Subscriber local_pos_pub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10, waypoint_cb);
+	ros::Subscriber local_pos_pub = nh.subscribe<geometry_msgs::PoseStamped>("waypoint", 10, waypoint_cb);
 	ros::Publisher chatter_pub = nh.advertise<transformations_ros::roombaPoses>("roombaPoses", 1);
 	ros::Publisher clock_pub = nh.advertise<rosgraph_msgs::Clock>("clock", 1);
 
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 	}
 
 	srand(time(NULL));
-	quad drone(9.5,9.5);
+	quad drone(-9.5,-9.5);
 	TargetRoomba roomba1(0,0,0);
 	TargetRoomba roomba2(0,0,0);
 	TargetRoomba roomba3(0,0,0);

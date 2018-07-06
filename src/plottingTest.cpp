@@ -53,8 +53,8 @@ int main(int argc, char **argv)
       }
 
       matplotlibcpp::clf();
-      matplotlibcpp::xlim(-10, 10);
-      matplotlibcpp::ylim(-10, 10);
+      matplotlibcpp::xlim(-20, 20);
+      matplotlibcpp::ylim(-20, 20);
       std::vector<double> stagingx(1);
       std::vector<double> stagingy(1);
       for (int i = x.size(); i > x.size()-160 && i > 0; --i)
