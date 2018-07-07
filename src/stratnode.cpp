@@ -292,9 +292,14 @@ int main(int argc, char **argv)
 
   int count = 0;
   float tollorance = .35;
+  float mode2SetTime;
+  float mode3SetTime;
+  float mode4SetTime;
+  ss_mode.str("SEARCH");
+  float currentTime;
   while (ros::ok())
   {
-
+    currentTime = ros::Time::now().toSec();
     //check if data has been recieved
     if (decks.size() > 0)
     {
@@ -323,15 +328,19 @@ int main(int argc, char **argv)
         heading_pub.publish(current_heading);
         MODE = 2;
         cout << "MODE : " << MODE << endl;
+        mode2SetTime = ros::Time::now().toSec();
+        
       }
       if (MODE == 2)
       {
+        
         float deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
         float deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
         float deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
         //cout << " dx " << deltaX << " dy " << deltaY << " dz " << deltaZ << endl;
         float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
         //cout << dMag << endl;
+       
         if( dMag < tollorance)
         { 
           float roombaVelTol = .1;
@@ -355,17 +364,61 @@ int main(int argc, char **argv)
             waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y;
             waypoint.pose.position.z = .5;
             MODE = 3;
+            mode3SetTime = ros::Time::now().toSec();
             cout << "MODE : " << MODE << endl;
-            ss_mode << "GOTO";
+            ss_mode.str("LAND");
             msg.data = ss_mode.str();
             mode_pub.publish(msg);
+
           }
+          if (currentTime - mode2SetTime > 10 )
+          {
+            MODE = 0;
+            waypoint.pose.position.x = 10;
+            waypoint.pose.position.y = 3;
+            waypoint.pose.position.z = 2;
+            heading = 0;
+            current_heading.data = heading;
+          }
+        }
+      }
+      if(MODE == 3)
+      {
+        if(currentTime - mode3SetTime > 10)
+        {
+            MODE = 4;
+            mode4SetTime = ros::Time::now().toSec();
+            waypoint.pose.position.x = 10;
+            waypoint.pose.position.y = 3;
+            waypoint.pose.position.z = 2;
+            heading = 0;
+            current_heading.data = heading;
+            cout << "MODE : " << MODE << endl;
+            ss_mode.str("TAKEOFF");
+            msg.data = ss_mode.str();
+            mode_pub.publish(msg);
+        }
+      }
+      if(MODE == 4)
+      {
+        if(currentTime - mode4SetTime > 5)
+        {
+          MODE = 0;
+          ss_mode.str("SEARCH");
+          msg.data = ss_mode.str();
         }
       }
     }
     ros::spinOnce();
-
     loop_rate.sleep();
+    heading_pub.publish(current_heading);
+    chatter_pub.publish(waypoint);
+    mode_pub.publish(msg);
+
+
+    //
+    //DEBUG PLOTTING 
+    //
     matplotlibcpp::ion();
     if (roombaPositions.roombaPoses.size())
     { 
@@ -402,8 +455,7 @@ int main(int argc, char **argv)
     }
 
     }
-    heading_pub.publish(current_heading);
-    chatter_pub.publish(waypoint);
+    
     ++count;
     // if(count%20==0){
     //  matplotlibcpp::clf();
