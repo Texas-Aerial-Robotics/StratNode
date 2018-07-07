@@ -11,6 +11,7 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <nav_msgs/Odometry.h>
 
 using namespace std;
 
@@ -20,6 +21,11 @@ int marker=0;
 geometry_msgs::PoseStamped waypoint;
 transformations_ros::roombaPoses roombaPositions;
 vector<deque<geometry_msgs::PoseStamped>> decks;
+nav_msgs::Odometry current_pose;
+std_msgs::Float64 gymOffset;
+std::stringstream ss_mode;
+std_msgs::String msg;
+
 double dist=90000;
 double temp;
 int MODE = 0;
@@ -29,6 +35,35 @@ struct slope
   float mxdt;
   float mydt;
 };
+
+void enu_2_gym(nav_msgs::Odometry current_pose_enu)
+{
+  float GYM_OFFSET = gymOffset.data;
+  float x = current_pose_enu.pose.pose.position.x;
+  float y = current_pose_enu.pose.pose.position.y;
+  float z = current_pose_enu.pose.pose.position.z;
+  float deg2rad = (M_PI/180);
+  float X = x*cos(GYM_OFFSET*deg2rad) - y*sin(GYM_OFFSET*deg2rad);
+  float Y = x*sin(GYM_OFFSET*deg2rad) + y*cos(GYM_OFFSET*deg2rad);
+  float Z = z;
+  current_pose.pose.pose.position.x = X;
+  current_pose.pose.pose.position.y = Y;
+  current_pose.pose.pose.position.z = Z;
+  
+ 
+}
+void gym_cb(const std_msgs::Float64::ConstPtr& msg)
+{
+  gymOffset = *msg;
+  //ROS_INFO("current heading: %f", current_heading.data);
+}
+//get current position of drone
+void pose_cb(const nav_msgs::Odometry::ConstPtr& msg) 
+{
+  nav_msgs::Odometry current_pose_enu = *msg;
+  enu_2_gym(current_pose_enu);
+  //ROS_INFO("pose enu x: %f y: %f z: %f", current_pose_enu.pose.pose.position.x, current_pose_enu.pose.pose.position.y, current_pose.pose.pose.position.z);
+}
 void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
  roombaPositions = *msg;
@@ -192,11 +227,20 @@ void target()
   for(int i=0; i<decks.size(); i++)
   {
 
-    //decide if there is enough data to execute an interaction 
     if (decks[i].size() > 4 && currentTime_d > 45 && decks[i].front().pose.position.x!=0 && decks[i].front().pose.position.y!=0)
     {
+      float dydt;
+      float sumdydt = 0;
+      float dataPoints = 4;
+      for(int j=0; j<dataPoints-1; j++)
+      {
+        sumdydt = (decks[i][j].pose.position.y - decks[i][j+1].pose.position.y)/(decks[i][j].header.stamp.toSec() - decks[i][j+1].header.stamp.toSec()) + sumdydt;
+      }
+      dydt = sumdydt/(dataPoints-1);
+      cout << "dydt " << dydt << endl;
 
-      if(decks[i].front().pose.position.y < distance)
+      //decide if there is enough data to execute an interaction 
+      if(decks[i].front().pose.position.y < distance && dydt < 0)
       {
         waypoint.pose.position.x = decks[i].front().pose.position.x;
         waypoint.pose.position.y = decks[i].front().pose.position.y;
@@ -232,17 +276,22 @@ int main(int argc, char **argv)
   ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 1, roomba_cb);
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
   ros::Publisher heading_pub = n.advertise<std_msgs::Float64>("setHeading", 1);
+  ros::Publisher mode_pub = n.advertise<std_msgs::String>("mode", 1);
+  ros::Subscriber currentPos = n.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
+  ros::Subscriber gym_offset_sub = n.subscribe("/gymOffset", 1, gym_cb);
+
 
   ros::Rate loop_rate(100);
 
   waypoint.pose.position.x = 10;
   waypoint.pose.position.y = 3;
-  waypoint.pose.position.z = .5;
+  waypoint.pose.position.z = 2;
   float heading = 0;
   std_msgs::Float64 current_heading;
   current_heading.data = heading;
 
   int count = 0;
+  float tollorance = .35;
   while (ros::ok())
   {
 
@@ -256,6 +305,7 @@ int main(int argc, char **argv)
       if ( MODE == 0)
       {
         target();
+        cout << "MODE : " << MODE << endl;
 
       }
       // if in intercept mode
@@ -271,6 +321,46 @@ int main(int argc, char **argv)
         cout << "heading " << heading << endl;
         current_heading.data = heading;
         heading_pub.publish(current_heading);
+        MODE = 2;
+        cout << "MODE : " << MODE << endl;
+      }
+      if (MODE == 2)
+      {
+        float deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
+        float deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
+        float deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
+        //cout << " dx " << deltaX << " dy " << deltaY << " dz " << deltaZ << endl;
+        float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
+        //cout << dMag << endl;
+        if( dMag < tollorance)
+        { 
+          float roombaVelTol = .1;
+          float dxdt;
+          float dydt;
+          float sumDPos = 0;
+          float dataPoints = 4;
+          float dPos;
+          float dTol = .12;
+          for(int i=0; i<dataPoints-1; i++)
+          {
+            dxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
+            dydt = (decks[TARGETQ][i].pose.position.y - decks[TARGETQ][i+1].pose.position.y)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
+            sumDPos = sqrt( pow(dxdt, 2) + pow(dydt, 2))  + sumDPos;
+          }
+          dPos = sumDPos/(dataPoints-1);
+          cout << "dPos " << dPos << endl;
+          if(abs(dPos) < dTol)
+          {     
+            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x;
+            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y;
+            waypoint.pose.position.z = .5;
+            MODE = 3;
+            cout << "MODE : " << MODE << endl;
+            ss_mode << "GOTO";
+            msg.data = ss_mode.str();
+            mode_pub.publish(msg);
+          }
+        }
       }
     }
     ros::spinOnce();
