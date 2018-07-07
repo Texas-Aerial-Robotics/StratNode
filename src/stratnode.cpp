@@ -367,9 +367,6 @@ int main(int argc, char **argv)
             mode3SetTime = ros::Time::now().toSec();
             cout << "MODE : " << MODE << endl;
             ss_mode.str("LAND");
-            msg.data = ss_mode.str();
-            mode_pub.publish(msg);
-
           }
           if (currentTime - mode2SetTime > 10 )
           {
@@ -395,8 +392,6 @@ int main(int argc, char **argv)
             current_heading.data = heading;
             cout << "MODE : " << MODE << endl;
             ss_mode.str("TAKEOFF");
-            msg.data = ss_mode.str();
-            mode_pub.publish(msg);
         }
       }
       if(MODE == 4)
@@ -405,7 +400,6 @@ int main(int argc, char **argv)
         {
           MODE = 0;
           ss_mode.str("SEARCH");
-          msg.data = ss_mode.str();
         }
       }
     }
@@ -413,6 +407,7 @@ int main(int argc, char **argv)
     loop_rate.sleep();
     heading_pub.publish(current_heading);
     chatter_pub.publish(waypoint);
+    msg.data = ss_mode.str();
     mode_pub.publish(msg);
 
 
