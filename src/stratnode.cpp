@@ -91,7 +91,7 @@ if (roombaPositions.roombaPoses.size() > 0 )
         }
 
       }
-      if ( dist<= .8){
+      if ( dist<= 1.5){
             //Found roomba close to deck[j] and adding it to the queue
             if (decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec()){
             decks[ctr].push_front(roombaPositions.roombaPoses[i].roombaPose);
@@ -165,27 +165,28 @@ void timeCheck()
 
 void target()
 {
-  int distance = 7;
+  int distance = 5;
   ros::Time currentTime = ros::Time::now();
   double currentTime_d = currentTime.toSec();
   cout << "Time " << currentTime_d << endl;
   for(int i=0; i<decks.size(); i++)
   {
 
-    if (decks[i].size() > 4 && currentTime_d > 45 && decks[i].front().pose.position.x!=0 && decks[i].front().pose.position.y!=0)
+    if (decks[i].size() > 7 && currentTime_d > 45 && decks[i].front().pose.position.x!=0 && decks[i].front().pose.position.y!=0)
     {
       float dydt;
       float sumdydt = 0;
-      float dataPoints = 4;
+      float dataPoints = 7;
       for(int j=0; j<dataPoints-1; j++)
       {
         sumdydt = (decks[i][j].pose.position.y - decks[i][j+1].pose.position.y)/(decks[i][j].header.stamp.toSec() - decks[i][j+1].header.stamp.toSec()) + sumdydt;
+        
       }
       dydt = sumdydt/(dataPoints-1);
       cout << "dydt " << dydt << endl;
 
       //decide if there is enough data to execute an interaction
-      if(decks[i].front().pose.position.y < distance && dydt < 0)  // NEED TO ADD A WAY TO DECIDE WHICH ROOMBA IS BEST TO GO FOR
+      if(decks[i].front().pose.position.y < distance && decks[i].front().pose.position.y > 0 && dydt < -.05)  // NEED TO ADD A WAY TO DECIDE WHICH ROOMBA IS BEST TO GO FOR
       {
         waypoint.pose.position.x = decks[i].front().pose.position.x;
         waypoint.pose.position.y = decks[i].front().pose.position.y;
@@ -235,6 +236,9 @@ int main(int argc, char **argv)
   ss_mode.clear();
   ss_mode.str("SEARCH");
   float currentTime;
+  float deltaX;
+  float deltaY;
+  float deltaZ;
   while (ros::ok())
   {
     currentTime = ros::Time::now().toSec();
@@ -258,8 +262,19 @@ int main(int argc, char **argv)
         targetDirection = linreg(decks[TARGETQ]);
         cout << "slope x " << targetDirection.mxdt << " y " << targetDirection.mydt  << endl;
         double mxy = sqrt(pow(targetDirection.mxdt,2) + pow(targetDirection.mydt,2));
-        cout << "Heading Direction x " << targetDirection.mxdt/mxy << " y " << targetDirection.mydt/mxy << endl;
-        cout << "atn2 " << -atan2(targetDirection.mydt/mxy, targetDirection.mxdt/mxy)*(180/3.1416) << endl;
+
+
+        float dxdt;
+        float dydt;
+        float sumDPos = 0;
+        float dataPoints = 4;
+        for(int i=0; i<dataPoints-1; i++)
+        {
+          dxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
+          dydt = (decks[TARGETQ][i].pose.position.y - decks[TARGETQ][i+1].pose.position.y)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
+        }
+        heading = -atan2(dydt, dxdt)*(180/3.1416) + 90;
+
         heading = -atan2(targetDirection.mydt/mxy, targetDirection.mxdt/mxy)*(180/3.1416) + 90;
         cout << "heading " << heading << endl;
         current_heading.data = heading;
@@ -272,9 +287,9 @@ int main(int argc, char **argv)
       if (MODE == 2)
       {
 
-        float deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
-        float deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
-        float deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
+        deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
+        deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
+        deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
         //cout << " dx " << deltaX << " dy " << deltaY << " dz " << deltaZ << endl;
         float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
         //cout << dMag << endl;
@@ -298,18 +313,20 @@ int main(int argc, char **argv)
           cout << "dPos " << dPos << endl;
           if(abs(dPos) < dTol)
           {
-            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x;
-            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y;
+            float dx = decks[TARGETQ].front().pose.position.x - current_pose.pose.pose.position.x;
+            float dy = decks[TARGETQ].front().pose.position.y - current_pose.pose.pose.position.y;
+            float magdydx = sqrt( pow(dx, 2) + pow(dy, 2)); 
+            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x + 1.5*(dx/magdydx);
+            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y + 1.5*(dy/magdydx);
             waypoint.pose.position.z = .5;
             MODE = 3;
-            mode3SetTime = ros::Time::now().toSec();
             cout << "MODE : " << MODE << endl;
-            ss_mode.str("");
-            ss_mode.clear();
-            ss_mode.str("LAND");
+            mode3SetTime = ros::Time::now().toSec();
+            
           }
-          if (currentTime - mode2SetTime > 10 )
+          if (currentTime - mode2SetTime > 14 )
           {
+            cout << "giving up. Timed out" << endl;
             MODE = 0;
             //clear Q with lost roomba 
             while (decks[TARGETQ].size()>1)
@@ -327,6 +344,20 @@ int main(int argc, char **argv)
       }
       if(MODE == 3)
       {
+
+        deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
+        deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
+        deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
+        //cout << " dx " << deltaX << " dy " << deltaY << " dz " << deltaZ << endl;
+        float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
+        //cout << dMag << endl;
+
+        if( dMag < tollorance)
+        {
+          ss_mode.str("");
+          ss_mode.clear();
+          ss_mode.str("LAND");
+        }
         if(currentTime - mode3SetTime > 10)
         {
             MODE = 4;
