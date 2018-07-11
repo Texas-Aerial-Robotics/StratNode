@@ -180,7 +180,7 @@ void target()
       for(int j=0; j<dataPoints-1; j++)
       {
         sumdydt = (decks[i][j].pose.position.y - decks[i][j+1].pose.position.y)/(decks[i][j].header.stamp.toSec() - decks[i][j+1].header.stamp.toSec()) + sumdydt;
-        
+
       }
       dydt = sumdydt/(dataPoints-1);
       cout << "dydt " << dydt << endl;
@@ -221,8 +221,8 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(100);
 
   waypoint.pose.position.x = 10;
-  waypoint.pose.position.y = 3;
-  waypoint.pose.position.z = 2;
+  waypoint.pose.position.y = 2;
+  waypoint.pose.position.z = 1.5;
   float heading = 0;
   std_msgs::Float64 current_heading;
   current_heading.data = heading;
@@ -313,30 +313,30 @@ int main(int argc, char **argv)
           cout << "dPos " << dPos << endl;
           if(abs(dPos) < dTol)
           {
-            float dx = decks[TARGETQ].front().pose.position.x - current_pose.pose.pose.position.x;
-            float dy = decks[TARGETQ].front().pose.position.y - current_pose.pose.pose.position.y;
-            float magdydx = sqrt( pow(dx, 2) + pow(dy, 2)); 
-            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x + 1.5*(dx/magdydx);
-            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y + 1.5*(dy/magdydx);
+            float dx = current_pose.pose.pose.position.x - decks[TARGETQ].front().pose.position.x;
+            float dy = current_pose.pose.pose.position.y - decks[TARGETQ].front().pose.position.y;
+            float magdydx = sqrt( pow(dx, 2) + pow(dy, 2));
+            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x + 1*(dx/magdydx);
+            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y + 1*(dy/magdydx);
             waypoint.pose.position.z = .5;
             MODE = 3;
             cout << "MODE : " << MODE << endl;
             mode3SetTime = ros::Time::now().toSec();
-            
+
           }
           if (currentTime - mode2SetTime > 14 )
           {
             cout << "giving up. Timed out" << endl;
             MODE = 0;
-            //clear Q with lost roomba 
+            //clear Q with lost roomba
             while (decks[TARGETQ].size()>1)
             {
               decks[TARGETQ].pop_back();
             }
 
             waypoint.pose.position.x = 10;
-            waypoint.pose.position.y = 3;
-            waypoint.pose.position.z = 2;
+            waypoint.pose.position.y = 2;
+            waypoint.pose.position.z = 1.5;
             heading = 0;
             current_heading.data = heading;
           }
@@ -363,8 +363,8 @@ int main(int argc, char **argv)
             MODE = 4;
             mode4SetTime = ros::Time::now().toSec();
             waypoint.pose.position.x = 10;
-            waypoint.pose.position.y = 3;
-            waypoint.pose.position.z = 2;
+            waypoint.pose.position.y = 2;
+            waypoint.pose.position.z = 1.5;
             heading = 0;
             current_heading.data = heading;
             cout << "MODE : " << MODE << endl;
