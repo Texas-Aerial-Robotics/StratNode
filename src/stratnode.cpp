@@ -165,7 +165,7 @@ void timeCheck()
 
 void target()
 {
-  int distance = 5;
+  int distance = 7;
   ros::Time currentTime = ros::Time::now();
   double currentTime_d = currentTime.toSec();
   cout << "Time " << currentTime_d << endl;
@@ -175,18 +175,24 @@ void target()
     if (decks[i].size() > 7 && currentTime_d > 45 && decks[i].front().pose.position.x!=0 && decks[i].front().pose.position.y!=0)
     {
       float dydt;
+      float dxdt;
       float sumdydt = 0;
+      float sumdxdt = 0;
       float dataPoints = 7;
+
       for(int j=0; j<dataPoints-1; j++)
       {
         sumdydt = (decks[i][j].pose.position.y - decks[i][j+1].pose.position.y)/(decks[i][j].header.stamp.toSec() - decks[i][j+1].header.stamp.toSec()) + sumdydt;
-
+        sumdxdt = (decks[i][j].pose.position.x - decks[i][j+1].pose.position.x)/(decks[i][j].header.stamp.toSec() - decks[i][j+1].header.stamp.toSec()) + sumdxdt;
       }
       dydt = sumdydt/(dataPoints-1);
-      cout << "dydt " << dydt << endl;
+      dxdt = sumdxdt/(dataPoints-1);
 
+
+      float intX = dxdt*(1/dydt)*(0-decks[i].front().pose.position.y) + decks[i].front().pose.position.x;
+      cout << "int X " << intX << endl;
       //decide if there is enough data to execute an interaction
-      if(decks[i].front().pose.position.y < distance && decks[i].front().pose.position.y > 0 && dydt < -.05)  // NEED TO ADD A WAY TO DECIDE WHICH ROOMBA IS BEST TO GO FOR
+      if(decks[i].front().pose.position.y < distance && decks[i].front().pose.position.y > 0 && dydt < -.05 && intX > -1 && intX < 21)  // NEED TO ADD A WAY TO DECIDE WHICH ROOMBA IS BEST TO GO FOR
       {
         waypoint.pose.position.x = decks[i].front().pose.position.x;
         waypoint.pose.position.y = decks[i].front().pose.position.y;
@@ -220,8 +226,8 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(100);
 
-  waypoint.pose.position.x = 10;
-  waypoint.pose.position.y = 2;
+  waypoint.pose.position.x = 6.5;
+  waypoint.pose.position.y = 2.5;
   waypoint.pose.position.z = 1.5;
   float heading = 0;
   std_msgs::Float64 current_heading;
@@ -239,6 +245,7 @@ int main(int argc, char **argv)
   float deltaX;
   float deltaY;
   float deltaZ;
+  MODE = -1;
   while (ros::ok())
   {
     currentTime = ros::Time::now().toSec();
@@ -248,6 +255,16 @@ int main(int argc, char **argv)
       //Clear old decks
       timeCheck();
 
+      if( MODE == -1)
+      {
+        current_heading.data = 45;
+        heading_pub.publish(current_heading);
+        target();
+        if (MODE == 1 && decks[TARGETQ].front().pose.position.x > 9 )
+        {
+          MODE = -1;
+        }
+      }
       //if in in targeting mode
       if ( MODE == 0)
       {
@@ -324,7 +341,9 @@ int main(int argc, char **argv)
             mode3SetTime = ros::Time::now().toSec();
 
           }
-          if (currentTime - mode2SetTime > 14 )
+
+        }
+        if (currentTime - mode2SetTime > 16 )
           {
             cout << "giving up. Timed out" << endl;
             MODE = 0;
@@ -340,7 +359,6 @@ int main(int argc, char **argv)
             heading = 0;
             current_heading.data = heading;
           }
-        }
       }
       if(MODE == 3)
       {
