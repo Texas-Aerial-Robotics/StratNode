@@ -67,7 +67,11 @@ void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
 void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
 {
  roombaPositions = *msg;
-
+ double slope1;
+ double diffx;
+ double diffy;
+ double b;
+ 
 if (roombaPositions.roombaPoses.size() > 0 )
 {
     if (decks.size()== 0){
@@ -81,17 +85,33 @@ if (roombaPositions.roombaPoses.size() > 0 )
     dist=9000;
     int rpt = 0;
     int ctr=0;
+    double spread1=99;
+
 
       for (int j=0; j < decks.size(); j++){
-
+       
+       
         temp =sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[j].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[j].front().pose.position.y,2));
         if(temp<dist){
           dist=temp;
           ctr=j;
+          //slope1=diffy/diffx;
+
         }
 
       }
-      if ( dist<= 1.5){
+      if(decks[ctr].size()>2 && decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec() ){
+           diffx=decks[ctr].front().pose.position.x-decks[ctr][1].pose.position.x;
+           cout<<"diffx: "<<diffx<<endl;
+           diffy=decks[ctr].front().pose.position.y-decks[ctr][1].pose.position.y;
+           cout<<"diffy: "<<diffy<<endl;
+           slope1=diffy/diffx;
+           cout<<"slope: "<<slope1<<endl;
+           b=decks[ctr].front().pose.position.y-slope1*decks[ctr].front().pose.position.x;
+           spread1=abs(slope1*roombaPositions.roombaPoses[i].roombaPose.pose.position.x+b-roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
+    }
+         cout<<"spread calculated as "<<spread1<<endl;
+      if ( dist<= 1.5 || (spread1<1 && dist <= 3) ){
             //Found roomba close to deck[j] and adding it to the queue
             if (decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec()){
             decks[ctr].push_front(roombaPositions.roombaPoses[i].roombaPose);
@@ -225,10 +245,22 @@ int main(int argc, char **argv)
 
 
   ros::Rate loop_rate(100);
+  int counter=0;
+  vector<double> reset_pos_x(3);
+  vector<double> reset_pos_y(3);
+  reset_pos_x[0]=6.5;
+  reset_pos_y[0]=2.5;
+  reset_pos_x[1]=10;
+  reset_pos_y[1]=2;
+  reset_pos_x[2]=13.5;
+  reset_pos_y[2]=2.5;
 
-  waypoint.pose.position.x = 6.5;
-  waypoint.pose.position.y = 2.5;
+  waypoint.pose.position.x = reset_pos_x[counter%3];
+  waypoint.pose.position.y = reset_pos_y[counter%3];
   waypoint.pose.position.z = 1.5;
+  counter++;
+  cout<<"counter"<<counter<<endl;
+  cout<<"index:"<< counter%3 <<endl;
   float heading = 0;
   std_msgs::Float64 current_heading;
   current_heading.data = heading;
@@ -246,6 +278,7 @@ int main(int argc, char **argv)
   float deltaY;
   float deltaZ;
   MODE = -1;
+ current_heading.data = 45;
   while (ros::ok())
   {
     currentTime = ros::Time::now().toSec();
@@ -327,7 +360,7 @@ int main(int argc, char **argv)
             sumDPos = sqrt( pow(dxdt, 2) + pow(dydt, 2))  + sumDPos;
           }
           dPos = sumDPos/(dataPoints-1);
-          cout << "dPos " << dPos << endl;
+          //cout << "dPos " << dPos << endl;
           if(abs(dPos) < dTol)
           {
             float dx = current_pose.pose.pose.position.x - decks[TARGETQ].front().pose.position.x;
@@ -353,10 +386,14 @@ int main(int argc, char **argv)
               decks[TARGETQ].pop_back();
             }
 
-            waypoint.pose.position.x = 10;
-            waypoint.pose.position.y = 2;
+            waypoint.pose.position.x = reset_pos_x[counter%3];
+
+            waypoint.pose.position.y = reset_pos_y[counter%3];
             waypoint.pose.position.z = 1.5;
+            counter++;
             heading = 0;
+            cout<<"counter"<<counter<<endl;
+            cout<<"index:"<< counter%3 <<endl;
             current_heading.data = heading;
           }
       }
@@ -380,9 +417,12 @@ int main(int argc, char **argv)
         {
             MODE = 4;
             mode4SetTime = ros::Time::now().toSec();
-            waypoint.pose.position.x = 10;
-            waypoint.pose.position.y = 2;
+            waypoint.pose.position.x = reset_pos_x[counter%3];
+            waypoint.pose.position.y = reset_pos_y[counter%3];
             waypoint.pose.position.z = 1.5;
+            counter++;
+            cout<<"counter"<<counter<<endl;
+            cout<<"index:"<< counter%3 <<endl;
             heading = 0;
             current_heading.data = heading;
             cout << "MODE : " << MODE << endl;
@@ -400,6 +440,7 @@ int main(int argc, char **argv)
           ss_mode.str("");
           ss_mode.clear();
           ss_mode.str("SEARCH");
+          
         }
       }
     }
