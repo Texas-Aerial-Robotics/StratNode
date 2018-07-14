@@ -217,7 +217,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
   ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 1, roomba_cb);
-  ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("waypoint", 1);
+  ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("TARwaypoint", 1);
   ros::Publisher heading_pub = n.advertise<std_msgs::Float64>("setHeading", 1);
   ros::Publisher mode_pub = n.advertise<std_msgs::String>("mode", 1);
   ros::Subscriber currentPos = n.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
