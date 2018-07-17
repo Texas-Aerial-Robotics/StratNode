@@ -267,9 +267,9 @@ int main(int argc, char **argv)
 
   int count = 0;
   float tollorance = .35;
-  float mode2SetTime;
-  float mode3SetTime;
-  float mode4SetTime;
+  double mode2SetTime;
+  double mode3SetTime;
+  double mode4SetTime;
   ss_mode.str("");
   ss_mode.clear();
   ss_mode.str("SEARCH");
