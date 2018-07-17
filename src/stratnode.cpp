@@ -71,7 +71,7 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
  double diffx;
  double diffy;
  double b;
- 
+
 if (roombaPositions.roombaPoses.size() > 0 )
 {
     if (decks.size()== 0){
@@ -89,8 +89,8 @@ if (roombaPositions.roombaPoses.size() > 0 )
 
 
       for (int j=0; j < decks.size(); j++){
-       
-       
+
+
         temp =sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[j].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[j].front().pose.position.y,2));
         if(temp<dist){
           dist=temp;
@@ -188,7 +188,7 @@ void target()
   int distance = 7;
   ros::Time currentTime = ros::Time::now();
   double currentTime_d = currentTime.toSec();
-  cout << "Time " << currentTime_d << endl;
+  // cout << fixed << "Time " << currentTime_d << endl;
   for(int i=0; i<decks.size(); i++)
   {
 
@@ -282,6 +282,7 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     currentTime = ros::Time::now().toSec();
+    cout << fixed << currentTime << endl;
     //check if data has been recieved
     if (decks.size() > 0)
     {
@@ -440,7 +441,7 @@ int main(int argc, char **argv)
           ss_mode.str("");
           ss_mode.clear();
           ss_mode.str("SEARCH");
-          
+
         }
       }
     }
