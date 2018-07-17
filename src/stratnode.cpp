@@ -273,7 +273,7 @@ int main(int argc, char **argv)
   ss_mode.str("");
   ss_mode.clear();
   ss_mode.str("SEARCH");
-  float currentTime;
+  double currentTime;
   float deltaX;
   float deltaY;
   float deltaZ;
