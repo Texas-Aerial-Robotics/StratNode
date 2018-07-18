@@ -138,8 +138,7 @@ if (roombaPositions.roombaPoses.size() > 0 )
              //cout<< "No queue matches current roomba at FUCKU"<<endl;
 
            }
-               }
-
+         }
     }
   }
 }
@@ -282,7 +281,7 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     currentTime = ros::Time::now().toSec();
-    cout << fixed << currentTime << endl;
+    // cout << fixed << currentTime << endl;
     //check if data has been recieved
     if (decks.size() > 0)
     {
