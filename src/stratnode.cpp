@@ -26,7 +26,6 @@ std_msgs::Float64 gymOffset;
 std::stringstream ss_mode;
 std_msgs::String msg;
 
-double dist=90000;
 double temp;
 int MODE = 0;
 int TARGETQ = 100;
@@ -72,8 +71,10 @@ void roomba_cb(const transformations_ros::roombaPoses::ConstPtr& msg)
  double diffy;
  double b;
 
+//check to see if the message has any detections
 if (roombaPositions.roombaPoses.size() > 0 )
 {
+    //if there are no decks, make one
     if (decks.size()== 0){
 
        cout<<"URMOM"<<endl;
@@ -81,96 +82,83 @@ if (roombaPositions.roombaPoses.size() > 0 )
        decks[0].push_front(roombaPositions.roombaPoses[0].roombaPose);
     }
 
-   for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
-    dist=9000;
-    int rpt = 0;
-    int ctr=0;
-    double spread1=99;
+    //cycle through detections
+    for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
 
-
+      //see which deck is closest to detection
+      double dist=9000;
+      int rpt = 0;
+      int ctr=0;
       for (int j=0; j < decks.size(); j++){
-
-
         temp =sqrt(pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.x - decks[j].front().pose.position.x,2) + pow(roombaPositions.roombaPoses[i].roombaPose.pose.position.y - decks[j].front().pose.position.y,2));
-        if(temp<dist){
+        //make sure Q isn't dead
+        if(temp<dist && roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec() - decks[j].front().header.stamp.toSec() < 6){
           dist=temp;
           ctr=j;
           //slope1=diffy/diffx;
-
         }
-
       }
-      if(decks[ctr].size()>2 && decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec() ){
-           diffx=decks[ctr].front().pose.position.x-decks[ctr][1].pose.position.x;
-           cout<<"diffx: "<<diffx<<endl;
-           diffy=decks[ctr].front().pose.position.y-decks[ctr][1].pose.position.y;
-           cout<<"diffy: "<<diffy<<endl;
-           slope1=diffy/diffx;
-           cout<<"slope: "<<slope1<<endl;
-           b=decks[ctr].front().pose.position.y-slope1*decks[ctr].front().pose.position.x;
-           spread1=abs(slope1*roombaPositions.roombaPoses[i].roombaPose.pose.position.x+b-roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
-    }
-         cout<<"spread calculated as "<<spread1<<endl;
-      if ( dist<= 1.5 || (spread1<1 && dist <= 3) ){
-            //Found roomba close to deck[j] and adding it to the queue
-            if (decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec()){
-            decks[ctr].push_front(roombaPositions.roombaPoses[i].roombaPose);
-            }
-            //cout << "roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << ctr<< endl;
-            //cout<< "Located "<<dist << "away from nearest queue"<<endl;
-            if(decks[ctr].size() >= MAX_POINTS){decks[ctr].pop_back();}
-          }else{
-             //cout<< "Located "<<dist << "away from nearest queue"<<endl;
-             if(decks.size()<10){
-             decks.push_back(deque<geometry_msgs::PoseStamped>());
-             decks[decks.size()-1].push_front(roombaPositions.roombaPoses[i].roombaPose);
-             //cout << "New roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << decks.size()-1 << endl;
-           }else{
 
-            while (decks[marker].size()>1)
-                {
+      //calculate if the detection lies along the predicted path
+      double spread1=99;
+      diffx=0;
+      diffy=0;
+      if(decks[ctr].size()>2 && decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec() )
+      {   for(int z = 0; z<decks[ctr].size()-1;z++){
+            diffx=decks[ctr][z].pose.position.x-decks[ctr][z+1].pose.position.x+diffx;
+            //cout<<"diffx: "<<diffx<<endl;
+            diffy=decks[ctr][z].pose.position.y-decks[ctr][z+1].pose.position.y+diffy;
+            //cout<<"diffy: "<<diffy<<endl;
+          }
+         slope1=diffy/diffx;
+         cout<<"slope: "<<slope1<<endl;
+         b=decks[ctr].front().pose.position.y-slope1*decks[ctr].front().pose.position.x;
+         spread1=abs(slope1*roombaPositions.roombaPoses[i].roombaPose.pose.position.x+b-roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
+         cout<< "spread " << spread1 <<endl;
+      }
+         // /cout<<"spread calculated as "<<spread1<<endl;
+      if ( dist<= 1 || (spread1<0.5 && dist <= 1.7) )
+      {
+        //Found roomba close to deck[j] and adding it to the queue
+        //make sure message is a new message
+        if (decks[ctr].front().header.stamp.toSec()!=roombaPositions.roombaPoses[i].roombaPose.header.stamp.toSec()){
+          decks[ctr].push_front(roombaPositions.roombaPoses[i].roombaPose);
+        }
+        //cout << "roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << ctr<< endl;
+        //cout<< "Located "<<dist << "away from nearest queue"<<endl;
+        if(decks[ctr].size() >= MAX_POINTS)
+        {
+          decks[ctr].pop_back();
+        }
+      }else{
+         //cout<< "Located "<<dist << "away from nearest queue"<<endl;
 
-                  decks[marker].pop_back();
-                }
+        //if all the decks have not been made make a new deck
+        if(decks.size()<10){
+        decks.push_back(deque<geometry_msgs::PoseStamped>());
+        decks[decks.size()-1].push_front(roombaPositions.roombaPoses[i].roombaPose);
+        //cout << "New roomba detected at " << roombaPositions.roombaPoses[i].roombaPose.pose.position.x << ", " << roombaPositions.roombaPoses[i].roombaPose.pose.position.y << ". This is roomba #" << decks.size()-1 << endl;
+        }else{
 
-             decks[marker].push_front(roombaPositions.roombaPoses[i].roombaPose);
-
-             //cout<< "No queue matches current roomba at FUCKU"<<endl;
-
-           }
-         }
+        //slaughter the oldest Q and start the new Q in it's place
+        while (decks[marker].size()>1)
+        {
+          decks[marker].pop_back();
+        }
+        decks[marker].push_front(roombaPositions.roombaPoses[i].roombaPose);
+        //cout<< "No queue matches current roomba at FUCKU"<<endl;
+       }
+     }
     }
   }
 }
-slope linreg(deque<geometry_msgs::PoseStamped> points)
-{
-  slope currentSlope;
-  double mx = 0, my = 0, sx = 0, sy = 0, st = 0, sxt = 0, syt = 0, sy2 = 0, sx2 = 0, st2 = 0, ix = 0, iy = 0;
-  for (int i = 0; i < points.size()-1; i++){
-
-        double nx = points[i].pose.position.x - points.back().pose.position.x;
-        double ny = points[i].pose.position.y - points.back().pose.position.y;
-        double nt = points[i].header.stamp.toSec() - points.back().header.stamp.toSec();
-        sx = sx + nx;
-        sy = sy + ny;
-        st = st + nt;
-        sxt = sxt + nx * nt;
-        syt = syt + ny * nt;
-        sx2 = sx2 + nx * nx;
-        sy2 = sy2 + ny * ny;
-        st2 = st2 + nt * nt;
-     }
-     currentSlope.mxdt = ((points.size()-1)*sxt-sx*st)/((points.size()-1)*st2-(st*st)); // dx/dt
-     currentSlope.mydt = ((points.size()-1)*syt-sy*st)/((points.size()-1)*st2-(st*st)); // dy/dt
-  return currentSlope;
-}
 void timeCheck()
 {
+  //find the oldest Q and mark it for slaughter
   ros::Time currentTime = ros::Time::now();
   double currentTime_d = currentTime.toSec();
   double dt=0;
   double temp;
-  double dt2;
   for (int i=0; i<decks.size(); i++)
   {
     temp = currentTime_d - decks[i].front().header.stamp.toSec();
@@ -184,14 +172,12 @@ void timeCheck()
 
 void target()
 {
-  int distance = 7;
-  ros::Time currentTime = ros::Time::now();
-  double currentTime_d = currentTime.toSec();
-  // cout << fixed << "Time " << currentTime_d << endl;
+  int distance = 9;
   for(int i=0; i<decks.size(); i++)
   {
 
-    if (decks[i].size() > 7 && currentTime_d > 45 && decks[i].front().pose.position.x!=0 && decks[i].front().pose.position.y!=0)
+    //check if there is 7 points in the Q
+    if (decks[i].size() > 6 && (MODE == 0 || MODE ==-1))
     {
       float dydt;
       float dxdt;
@@ -199,6 +185,7 @@ void target()
       float sumdxdt = 0;
       float dataPoints = 7;
 
+      //take numeric derivative
       for(int j=0; j<dataPoints-1; j++)
       {
         sumdydt = (decks[i][j].pose.position.y - decks[i][j+1].pose.position.y)/(decks[i][j].header.stamp.toSec() - decks[i][j+1].header.stamp.toSec()) + sumdydt;
@@ -206,8 +193,6 @@ void target()
       }
       dydt = sumdydt/(dataPoints-1);
       dxdt = sumdxdt/(dataPoints-1);
-
-
       float intX = dxdt*(1/dydt)*(0-decks[i].front().pose.position.y) + decks[i].front().pose.position.x;
       cout << "int X " << intX << endl;
       //decide if there is enough data to execute an interaction
@@ -215,8 +200,7 @@ void target()
       {
         waypoint.pose.position.x = decks[i].front().pose.position.x;
         waypoint.pose.position.y = decks[i].front().pose.position.y;
-        waypoint.pose.position.z = 1;
-        distance = decks[i].front().pose.position.y;
+        waypoint.pose.position.z = .85;
         MODE = 1;
         cout << "set new waypoit x "<< waypoint.pose.position.x << " y " << waypoint.pose.position.y << " z " <<waypoint.pose.position.z << endl;
         TARGETQ = i;
@@ -235,7 +219,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 1, roomba_cb);
+  ros::Subscriber sub = n.subscribe<transformations_ros::roombaPoses>("roombaPoses", 5, roomba_cb);
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::PoseStamped>("TARwaypoint", 1);
   ros::Publisher heading_pub = n.advertise<std_msgs::Float64>("setHeading", 1);
   ros::Publisher mode_pub = n.advertise<std_msgs::String>("mode", 1);
@@ -243,29 +227,28 @@ int main(int argc, char **argv)
   ros::Subscriber gym_offset_sub = n.subscribe("/gymOffset", 1, gym_cb);
 
 
-  ros::Rate loop_rate(100);
+  ros::Rate loop_rate(15);
   int counter=0;
   vector<double> reset_pos_x(3);
   vector<double> reset_pos_y(3);
   reset_pos_x[0]=6.5;
-  reset_pos_y[0]=2.5;
+  reset_pos_y[0]=3.5;
   reset_pos_x[1]=10;
   reset_pos_y[1]=2;
   reset_pos_x[2]=13.5;
-  reset_pos_y[2]=2.5;
+  reset_pos_y[2]=4.5;
 
   waypoint.pose.position.x = reset_pos_x[counter%3];
   waypoint.pose.position.y = reset_pos_y[counter%3];
   waypoint.pose.position.z = 1.5;
   counter++;
-  cout<<"counter"<<counter<<endl;
-  cout<<"index:"<< counter%3 <<endl;
+
   float heading = 0;
   std_msgs::Float64 current_heading;
-  current_heading.data = heading;
 
   int count = 0;
   float tollorance = .35;
+  double lastmode0SetTime;
   double mode2SetTime;
   double mode3SetTime;
   double mode4SetTime;
@@ -277,9 +260,10 @@ int main(int argc, char **argv)
   float deltaY;
   float deltaZ;
   MODE = -1;
- current_heading.data = 45;
+  current_heading.data = 45;
   while (ros::ok())
   {
+    ROS_INFO("MODE %d ", MODE);
     currentTime = ros::Time::now().toSec();
     // cout << fixed << currentTime << endl;
     //check if data has been recieved
@@ -293,7 +277,7 @@ int main(int argc, char **argv)
         current_heading.data = 45;
         heading_pub.publish(current_heading);
         target();
-        if (MODE == 1 && decks[TARGETQ].front().pose.position.x > 9 )
+        if (MODE == 1 && decks[TARGETQ].front().pose.position.x > 11 )
         {
           MODE = -1;
         }
@@ -303,29 +287,28 @@ int main(int argc, char **argv)
       {
         target();
         cout << "MODE : " << MODE << endl;
-
       }
       // if in intercept mode
       if (MODE == 1)
       {
-        slope targetDirection;
-        targetDirection = linreg(decks[TARGETQ]);
-        cout << "slope x " << targetDirection.mxdt << " y " << targetDirection.mydt  << endl;
-        double mxy = sqrt(pow(targetDirection.mxdt,2) + pow(targetDirection.mydt,2));
-
-
         float dxdt;
         float dydt;
+        float sumdxdt = 0;
+        float sumdydt = 0;
         float sumDPos = 0;
-        float dataPoints = 4;
+        float dataPoints = 7;
+        float dPos;
         for(int i=0; i<dataPoints-1; i++)
         {
-          dxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
-          dydt = (decks[TARGETQ][i].pose.position.y - decks[TARGETQ][i+1].pose.position.y)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
+          sumdxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdxdt;
+          sumdydt = (decks[TARGETQ][i].pose.position.y - decks[TARGETQ][i+1].pose.position.y)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdydt;
+
         }
+        dydt = sumdydt/(dataPoints-1);
+        dxdt = sumdxdt/(dataPoints-1);
+
         heading = -atan2(dydt, dxdt)*(180/3.1416) + 90;
 
-        heading = -atan2(targetDirection.mydt/mxy, targetDirection.mxdt/mxy)*(180/3.1416) + 90;
         cout << "heading " << heading << endl;
         current_heading.data = heading;
         heading_pub.publish(current_heading);
@@ -337,65 +320,83 @@ int main(int argc, char **argv)
       if (MODE == 2)
       {
 
+        //numeric derivative
+        float dxdt;
+        float dydt;
+        float sumdxdt = 0;
+        float sumdydt = 0;
+        float sumDPos = 0;
+        float dataPoints = 4;
+        float dPos;
+        float dTol = .05;
+        for(int i=0; i<dataPoints-1; i++)
+        {
+          sumdxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdxdt;
+          sumdydt = (decks[TARGETQ][i].pose.position.y - decks[TARGETQ][i+1].pose.position.y)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdydt;
+
+        }
+        dydt = sumdydt/(dataPoints-1);
+        dxdt = sumdxdt/(dataPoints-1);
+        sumDPos = sqrt( pow(sumdxdt, 2) + pow(sumdydt, 2));
+        dPos = sumDPos/(dataPoints-1);
+
+        //difference between drone's position and roomba
+        float dx = current_pose.pose.pose.position.x - decks[TARGETQ].front().pose.position.x;
+        float dy = current_pose.pose.pose.position.y - decks[TARGETQ].front().pose.position.y;
+        float magdydx = sqrt( pow(dx, 2) + pow(dy, 2));
+
+        cout << "dPos " << dPos << endl;
+        if(abs(dPos) < dTol)
+        {
+          waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x + 1.2*(dx/magdydx);
+          waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y + 1.2*(dy/magdydx);
+          waypoint.pose.position.z = .5;
+          MODE = 3;
+          cout << "MODE : " << MODE << endl;
+          mode3SetTime = ros::Time::now().toSec();
+
+        }
+
         deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
         deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
         deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
         //cout << " dx " << deltaX << " dy " << deltaY << " dz " << deltaZ << endl;
         float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
-        //cout << dMag << endl;
 
         if( dMag < tollorance)
         {
-          float roombaVelTol = .1;
-          float dxdt;
-          float dydt;
-          float sumDPos = 0;
-          float dataPoints = 4;
-          float dPos;
-          float dTol = .12;
-          for(int i=0; i<dataPoints-1; i++)
+          if(magdydx > 2.25)
           {
-            dxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
-            dydt = (decks[TARGETQ][i].pose.position.y - decks[TARGETQ][i+1].pose.position.y)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec());
-            sumDPos = sqrt( pow(dxdt, 2) + pow(dydt, 2))  + sumDPos;
+            ROS_INFO("Moving closer to roomba");
+            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x - 1.5*(dxdt/dPos);
+            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y - 1.5*(dydt/dPos);
+            waypoint.pose.position.z = .85;
           }
-          dPos = sumDPos/(dataPoints-1);
-          //cout << "dPos " << dPos << endl;
-          if(abs(dPos) < dTol)
-          {
-            float dx = current_pose.pose.pose.position.x - decks[TARGETQ].front().pose.position.x;
-            float dy = current_pose.pose.pose.position.y - decks[TARGETQ].front().pose.position.y;
-            float magdydx = sqrt( pow(dx, 2) + pow(dy, 2));
-            waypoint.pose.position.x = decks[TARGETQ].front().pose.position.x + 1*(dx/magdydx);
-            waypoint.pose.position.y = decks[TARGETQ].front().pose.position.y + 1*(dy/magdydx);
-            waypoint.pose.position.z = .5;
-            MODE = 3;
-            cout << "MODE : " << MODE << endl;
-            mode3SetTime = ros::Time::now().toSec();
-
-          }
-
         }
-        if (currentTime - mode2SetTime > 16 )
+
+        //TIME OUT condition
+        if (currentTime - mode2SetTime > 20 && MODE == 2 )
+        {
+          cout << "giving up. Timed out" << endl;
+          MODE = 0;
+          lastmode0SetTime = ros::Time::now().toSec();
+          //clear Q with lost roomba
+          ROS_INFO("Resetting Qs");
+          for(int i=0; i<decks.size(); i++)
           {
-            cout << "giving up. Timed out" << endl;
-            MODE = 0;
-            //clear Q with lost roomba
-            while (decks[TARGETQ].size()>1)
+            while (decks[i].size()>1)
             {
-              decks[TARGETQ].pop_back();
+              decks[i].pop_back();
             }
-
-            waypoint.pose.position.x = reset_pos_x[counter%3];
-
-            waypoint.pose.position.y = reset_pos_y[counter%3];
-            waypoint.pose.position.z = 1.5;
-            counter++;
-            heading = 0;
-            cout<<"counter"<<counter<<endl;
-            cout<<"index:"<< counter%3 <<endl;
-            current_heading.data = heading;
           }
+
+          waypoint.pose.position.x = reset_pos_x[counter%3];
+          waypoint.pose.position.y = reset_pos_y[counter%3];
+          waypoint.pose.position.z = 1.5;
+          counter++;
+          heading = 0;
+          current_heading.data = heading;
+        }
       }
       if(MODE == 3)
       {
@@ -421,8 +422,6 @@ int main(int argc, char **argv)
             waypoint.pose.position.y = reset_pos_y[counter%3];
             waypoint.pose.position.z = 1.5;
             counter++;
-            cout<<"counter"<<counter<<endl;
-            cout<<"index:"<< counter%3 <<endl;
             heading = 0;
             current_heading.data = heading;
             cout << "MODE : " << MODE << endl;
@@ -435,7 +434,16 @@ int main(int argc, char **argv)
       {
         if(currentTime - mode4SetTime > 2)
         {
+          ROS_INFO("Resetting Qs");
+          for(int i=0; i<decks.size(); i++)
+          {
+            while (decks[i].size()>1)
+            {
+              decks[i].pop_back();
+            }
+          }
           MODE = 0;
+          lastmode0SetTime = ros::Time::now().toSec();
           cout << "MODE : " << MODE << endl;
           ss_mode.str("");
           ss_mode.clear();
@@ -458,42 +466,47 @@ int main(int argc, char **argv)
     //
     //DEBUG PLOTTING
     //
-    matplotlibcpp::ion();
-    if (roombaPositions.roombaPoses.size())
-    {
-      matplotlibcpp::xlim(-.5, 19.5);
-      matplotlibcpp::ylim(-.5, 19.5);
+    // matplotlibcpp::ion();
+    // if (roombaPositions.roombaPoses.size())
+    // {
+    //   matplotlibcpp::xlim(-.5, 19.5);
+    //   matplotlibcpp::ylim(-.5, 19.5);
 
 
-      // for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
-      //    x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);
-      //    y.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
-      //    matplotlibcpp::plot(x, y, "ro");
-      //    matplotlibcpp::pause(0.001);
-      //    matplotlibcpp::draw();
-      //  }
-      string colour[10]= {"bo","go","ro","co","mo","yo","ko","bv","gv","rv"};
+    //   // for (int i=0; i < roombaPositions.roombaPoses.size(); i++){
+    //   //    x.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.x);
+    //   //    y.push_back(roombaPositions.roombaPoses[i].roombaPose.pose.position.y);
+    //   //    matplotlibcpp::plot(x, y, "ro");
+    //   //    matplotlibcpp::pause(0.001);
+    //   //    matplotlibcpp::draw();
+    //   //  }
+    //   string colour[10]= {"bo","go","ro","co","mo","yo","ko","bv","b.","rv"};
+    //   string special_color= "g+";
+    //   for (int j=0; j < decks.size(); j++){
+    //       //cout<<decks[j][0]<<endl;
+    //       //cout<<colour[j]<<endl;
 
-      // for (int j=0; j < decks.size(); j++){
-      //     //cout<<decks[j][0]<<endl;
-      //     //cout<<colour[j]<<endl;
+    //       x[0]=decks[j][0].pose.position.x;
+    //       y[0]=decks[j][0].pose.position.y;
+    //       if(j==TARGETQ){
+    //        matplotlibcpp::plot(x, y, special_color);
+    //       }
+    //       else{
+    //       matplotlibcpp::plot(x, y, colour[j]);
+    //     }
+    //       matplotlibcpp::pause(0.0001);
+    //       matplotlibcpp::draw();
 
-      //     x[0]=decks[j][0].pose.position.x;
-      //     y[0]=decks[j][0].pose.position.y;
-      //     matplotlibcpp::plot(x, y, colour[j]);
-      //     matplotlibcpp::pause(0.0001);
-      //     matplotlibcpp::draw();
+    //   }
+    // // if(TARGETQ!=100){
+    // //       x[0]=decks[TARGETQ][0].pose.position.x;
+    // //       y[0]=decks[TARGETQ][0].pose.position.y;
+    // //       matplotlibcpp::plot(x, y, colour[TARGETQ]);
+    // //       matplotlibcpp::pause(0.0001);
+    // //       matplotlibcpp::draw();
+    // //}
 
-      // }
-    if(TARGETQ!=100){
-          x[0]=decks[TARGETQ][0].pose.position.x;
-          y[0]=decks[TARGETQ][0].pose.position.y;
-          matplotlibcpp::plot(x, y, colour[TARGETQ]);
-          matplotlibcpp::pause(0.0001);
-          matplotlibcpp::draw();
-    }
-
-    }
+    // }
 
     ++count;
     // if(count%20==0){
