@@ -260,7 +260,7 @@ int main(int argc, char **argv)
   float deltaY;
   float deltaZ;
   MODE = -1;
-  current_heading.data = 45;
+  current_heading.data = 18;
   while (ros::ok())
   {
     ROS_INFO("MODE %d ", MODE);
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
       if( MODE == -1)
       {
-        current_heading.data = 45;
+        current_heading.data = 18;
         heading_pub.publish(current_heading);
         target();
         if (MODE == 1 && decks[TARGETQ].front().pose.position.x > 11 )
