@@ -231,12 +231,12 @@ int main(int argc, char **argv)
   int counter=0;
   vector<double> reset_pos_x(3);
   vector<double> reset_pos_y(3);
-  reset_pos_x[0]=6.5;
-  reset_pos_y[0]=3.5;
+  reset_pos_x[0]=5.5;
+  reset_pos_y[0]=1.5;
   reset_pos_x[1]=10;
-  reset_pos_y[1]=2;
+  reset_pos_y[1]=1.5;
   reset_pos_x[2]=13.5;
-  reset_pos_y[2]=4.5;
+  reset_pos_y[2]=1.5;
 
   waypoint.pose.position.x = reset_pos_x[counter%3];
   waypoint.pose.position.y = reset_pos_y[counter%3];
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
   float deltaY;
   float deltaZ;
   MODE = -1;
-  current_heading.data = 18;
+  current_heading.data = 45;
   while (ros::ok())
   {
     ROS_INFO("MODE %d ", MODE);
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
       if( MODE == -1)
       {
-        current_heading.data = 18;
+        current_heading.data = 45;
         heading_pub.publish(current_heading);
         target();
         if (MODE == 1 && decks[TARGETQ].front().pose.position.x > 11 )
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
         float sumDPos = 0;
         float dataPoints = 4;
         float dPos;
-        float dTol = .05;
+        float dTol = .13;
         for(int i=0; i<dataPoints-1; i++)
         {
           sumdxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdxdt;
