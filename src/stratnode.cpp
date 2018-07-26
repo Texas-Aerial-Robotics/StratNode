@@ -179,11 +179,11 @@ void target()
     //check if there is 7 points in the Q
     if (decks[i].size() > 6 && (MODE == 0 || MODE ==-1))
     {
-      float dydt;
-      float dxdt;
-      float sumdydt = 0;
-      float sumdxdt = 0;
-      float dataPoints = 7;
+      double dydt;
+      double dxdt;
+      double sumdydt = 0;
+      double sumdxdt = 0;
+      double dataPoints = 7;
 
       //take numeric derivative
       for(int j=0; j<dataPoints-1; j++)
@@ -193,10 +193,10 @@ void target()
       }
       dydt = sumdydt/(dataPoints-1);
       dxdt = sumdxdt/(dataPoints-1);
-      float intX = dxdt*(1/dydt)*(0-decks[i].front().pose.position.y) + decks[i].front().pose.position.x;
+      double intX = dxdt*(1/dydt)*(0-decks[i].front().pose.position.y) + decks[i].front().pose.position.x;
       cout << "int X " << intX << endl;
       //decide if there is enough data to execute an interaction
-      if(decks[i].front().pose.position.y < distance && decks[i].front().pose.position.y > 0 && dydt < -.05 && intX > -1 && intX < 21)  // NEED TO ADD A WAY TO DECIDE WHICH ROOMBA IS BEST TO GO FOR
+      if(decks[i].front().pose.position.y < distance && decks[i].front().pose.position.y > 0 && dydt < -.09 && intX > -1 && intX < 21)  // NEED TO ADD A WAY TO DECIDE WHICH ROOMBA IS BEST TO GO FOR
       {
         waypoint.pose.position.x = decks[i].front().pose.position.x;
         waypoint.pose.position.y = decks[i].front().pose.position.y;
@@ -256,9 +256,9 @@ int main(int argc, char **argv)
   ss_mode.clear();
   ss_mode.str("SEARCH");
   double currentTime;
-  float deltaX;
-  float deltaY;
-  float deltaZ;
+  double deltaX;
+  double deltaY;
+  double deltaZ;
   MODE = -1;
   current_heading.data = 45;
   while (ros::ok())
@@ -291,13 +291,13 @@ int main(int argc, char **argv)
       // if in intercept mode
       if (MODE == 1)
       {
-        float dxdt;
-        float dydt;
-        float sumdxdt = 0;
-        float sumdydt = 0;
-        float sumDPos = 0;
-        float dataPoints = 7;
-        float dPos;
+        double dxdt;
+        double dydt;
+        double sumdxdt = 0;
+        double sumdydt = 0;
+        double sumDPos = 0;
+        double dataPoints = 7;
+        double dPos;
         for(int i=0; i<dataPoints-1; i++)
         {
           sumdxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdxdt;
@@ -321,14 +321,14 @@ int main(int argc, char **argv)
       {
 
         //numeric derivative
-        float dxdt;
-        float dydt;
-        float sumdxdt = 0;
-        float sumdydt = 0;
-        float sumDPos = 0;
-        float dataPoints = 4;
-        float dPos;
-        float dTol = .13;
+        double dxdt;
+        double dydt;
+        double sumdxdt = 0;
+        double sumdydt = 0;
+        //float sumDPos = 0;
+        double dataPoints = 4;
+        double dPos;
+        double dTol = .13;
         for(int i=0; i<dataPoints-1; i++)
         {
           sumdxdt = (decks[TARGETQ][i].pose.position.x - decks[TARGETQ][i+1].pose.position.x)/(decks[TARGETQ][i].header.stamp.toSec() - decks[TARGETQ][i+1].header.stamp.toSec()) + sumdxdt;
@@ -337,13 +337,13 @@ int main(int argc, char **argv)
         }
         dydt = sumdydt/(dataPoints-1);
         dxdt = sumdxdt/(dataPoints-1);
-        sumDPos = sqrt( pow(sumdxdt, 2) + pow(sumdydt, 2));
-        dPos = sumDPos/(dataPoints-1);
+        dPos = sqrt( pow(dxdt, 2) + pow(dydt, 2));
+        //dPos = sumDPos/(dataPoints-1);
 
         //difference between drone's position and roomba
-        float dx = current_pose.pose.pose.position.x - decks[TARGETQ].front().pose.position.x;
-        float dy = current_pose.pose.pose.position.y - decks[TARGETQ].front().pose.position.y;
-        float magdydx = sqrt( pow(dx, 2) + pow(dy, 2));
+        double dx = current_pose.pose.pose.position.x - decks[TARGETQ].front().pose.position.x;
+        double dy = current_pose.pose.pose.position.y - decks[TARGETQ].front().pose.position.y;
+        double magdydx = sqrt( pow(dx, 2) + pow(dy, 2));
 
         cout << "dPos " << dPos << endl;
         if(abs(dPos) < dTol)
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
         deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
         deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
         //cout << " dx " << deltaX << " dy " << deltaY << " dz " << deltaZ << endl;
-        float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
+        double dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
         //cout << dMag << endl;
 
         if( dMag < tollorance)
